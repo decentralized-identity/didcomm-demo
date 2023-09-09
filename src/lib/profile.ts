@@ -12,4 +12,5 @@ export interface Secret {
 export interface Profile {
     profileId: string;
     secrets: Secret[];
+    mediatorURL: string;
 }
