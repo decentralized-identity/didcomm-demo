@@ -14,12 +14,12 @@ interface OptionalInputAttributes {
 }
 
 class OptionalInputElement implements m.ClassComponent<OptionalInputAttributes> {
-  isEditing: boolean = false; // Start off with the button displayed by default
+  isEditing: boolean = false; 
   value: string = "";
 
   view(vnode: m.Vnode<OptionalInputAttributes>) {
     if (this.isEditing) {
-      return m("input", {
+      return m("input.input", {
         placeholder: vnode.attrs.placeholder,
         value: this.value,
         oninput: (e: Event) => {
@@ -34,7 +34,7 @@ class OptionalInputElement implements m.ClassComponent<OptionalInputAttributes> 
         }
       });
     } else {
-      return m("button", {
+      return m("button.button", {
         onclick: () => this.isEditing = true
       }, vnode.attrs.placeholder);
     }
@@ -50,42 +50,42 @@ class NewProfile implements m.ClassComponent<NewProfileState> {
   view() {
     if (this.isCreating) {
       return m("div", [
-        m("div", { style: { display: "flex", alignItems: "center" } },
-          m(".input-group", [
-            m("input.form-control", {
+        m(".field.is-grouped", [
+          m(".control.is-expanded", [
+            m("input.input", {
               placeholder: "Profile Name",
               value: this.profileName,
               oninput: (e: Event) => this.profileName = (e.target as HTMLInputElement).value
-            }),
-            m(".input-group-append", [
-              m("button.btn btn-primary", {
-                onclick: () => {
-                  if (this.profileName) {
-                    // Stub: Add logic to generate secrets here
+            })
+          ]),
+          m(".control", [
+            m("button.button.is-primary", {
+              onclick: () => {
+                if (this.profileName) {
+                  // Stub: Add logic to generate secrets here
 
-                    // Store the profile in localStorage
-                    localStorage.setItem(
-                      this.profileName,
-                      JSON.stringify({
-                        mediatorURL: this.mediatorURL || DEFAULT_MEDIATOR_URL,
-                        secrets: []
-                      })
-                    );
+                  // Store the profile in localStorage
+                  localStorage.setItem(
+                    this.profileName,
+                    JSON.stringify({
+                      mediatorURL: this.mediatorURL || DEFAULT_MEDIATOR_URL,
+                      secrets: []
+                    })
+                  );
 
-                    // Reset state
-                    this.isCreating = false;
-                    this.profileName = "";
-                    this.mediatorURL = "";
-                    
-                    // Refresh or re-route as needed to update the profile list display
-                    m.redraw();
-                  }
+                  // Reset state
+                  this.isCreating = false;
+                  this.profileName = "";
+                  this.mediatorURL = "";
+                  
+                  // Refresh or re-route as needed to update the profile list display
+                  m.redraw();
                 }
-              }, "+")
-            ])
+              }
+            }, "+")
           ])
-        ),
-        m("div", { style: { marginTop: "10px" } }, [
+        ]),
+        m(".field", { style: { marginTop: "10px" } }, [
           m(OptionalInputElement, {
             placeholder: "Add Mediator URL",
             oninput: (value: string) => {
@@ -97,7 +97,7 @@ class NewProfile implements m.ClassComponent<NewProfileState> {
         ])
       ]);
     } else {
-      return m("button.btn btn-primary", {
+      return m("button.button.is-primary", {
         onclick: () => this.isCreating = true
       }, "Create New Profile +");
     }
