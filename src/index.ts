@@ -1,2 +1,10 @@
 import * as m from "mithril"
-m.render(document.body, "hello world")
+import Layout from "./components/layout"
+
+m.route(document.body, "/list", {
+  "/list": {
+    render() {
+      return m(Layout)
+    }
+  }
+})
