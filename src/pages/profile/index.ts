@@ -2,6 +2,8 @@ import * as m from "mithril";
 import { Secret } from "../../lib/profile";
 import Navbar from "./navbar";
 import ConsoleComponent from "./console";
+import JSONEditor from "./jsoneditor";
+import MessagingComponent from "./messaging";
 
 interface ProfileAttributes {
   id: string;
@@ -30,7 +32,7 @@ export default class ProfilePage implements m.ClassComponent<ProfileAttributes> 
 
           m("div", { 
             style: "margin-top: 1rem; padding: 1rem; background-color: #f5f5f5; flex-grow: 1; flex-shrink: 0; flex-basis: auto;" 
-          }, "JSON Editor Placeholder"),
+          }, m(JSONEditor)),
 
           m("div", { style: "margin-top: 1rem;" }, [
             m("div.field.has-addons", [
@@ -45,11 +47,7 @@ export default class ProfilePage implements m.ClassComponent<ProfileAttributes> 
         m(".column", [
           m("div", { 
             style: "display: flex; flex-direction: column; justify-content: flex-end; padding: 1rem; background-color: #f5f5f5; height: 75vh;" 
-          }, [
-            // Message bubbles as placeholders
-            m(".content", "Received Message Content"),
-            m(".content.has-text-right", "Sent Message Content"),
-          ]),
+          }, m(MessagingComponent)),
           m("div", { style: "margin-top: 1rem;" }, [
             m("div.field.has-addons", [
               m("div.control.is-expanded", m("input.input[type=text][placeholder='Type your message...']")),
