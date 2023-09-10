@@ -4,7 +4,7 @@ import {
   edwardsToMontgomeryPub,
   edwardsToMontgomeryPriv,
 } from "@noble/curves/ed25519"
-import { DIDResolver, DIDDoc, Secret } from "didcomm"
+import { DIDResolver, DIDDoc, SecretsResolver, Secret } from "didcomm"
 import DIDPeer from "./peer2"
 import * as multibase from "multibase"
 import * as multicodec from "multicodec"
@@ -82,15 +82,70 @@ export function generateDid(routingKeys: string[], endpoint: string) {
   return { did, secrets: [secretVer, secretEnc] }
 }
 
-class DIDResolverImpl implements DIDResolver {
+export class DIDPeerResolver implements DIDResolver {
   async resolve(did: string): Promise<DIDDoc | null> {
     const raw_doc = DIDPeer.resolve(did)
     return {
       id: raw_doc.id,
+      verificationMethod: raw_doc.verificationMethod,
       authentication: raw_doc.authentication,
       keyAgreement: raw_doc.keyAgreement,
       service: raw_doc.service,
-      verificationMethod: raw_doc.verificationMethod,
+    }
+  }
+}
+
+export class LocalSecretsResolver implements SecretsResolver {
+  private readonly storageKey = "secretsResolver"
+
+  constructor() {
+    // Initialize local storage if it hasn't been done before
+    if (!localStorage.getItem(this.storageKey)) {
+      localStorage.setItem(this.storageKey, JSON.stringify({}))
+    }
+  }
+
+  private static createError(message: string, name: string): Error {
+    const e = new Error(message)
+    e.name = name
+    return e
+  }
+
+  async get_secret(secret_id: string): Promise<Secret | null> {
+    try {
+      const secrets = JSON.parse(localStorage.getItem(this.storageKey) || "{}")
+      return secrets[secret_id] || null
+    } catch (error) {
+      throw LocalSecretsResolver.createError(
+        "Unable to perform IO operation",
+        "DIDCommIoError"
+      )
+    }
+  }
+
+  async find_secrets(secret_ids: Array<string>): Promise<Array<string>> {
+    try {
+      const secrets = JSON.parse(localStorage.getItem(this.storageKey) || "{}")
+      return secret_ids.map(id => secrets[id]).filter(secret => !!secret) // Filter out undefined or null values
+    } catch (error) {
+      throw LocalSecretsResolver.createError(
+        "Unable to perform IO operation",
+        "DIDCommIoError"
+      )
+    }
+  }
+
+  // Helper method to store a secret in localStorage
+  store_secret(secret: Secret): void {
+    try {
+      const secrets = JSON.parse(localStorage.getItem(this.storageKey) || "{}")
+      secrets[secret.id] = secret
+      localStorage.setItem(this.storageKey, JSON.stringify(secrets))
+    } catch (error) {
+      throw LocalSecretsResolver.createError(
+        "Unable to perform IO operation",
+        "DIDCommIoError"
+      )
     }
   }
 }

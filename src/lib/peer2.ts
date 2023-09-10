@@ -105,6 +105,10 @@ export default class DIDPeer {
 
   // Resolve a DID into a DID Document
   static resolve(did: string) {
+    if (!did.startsWith("did:peer:2")) {
+      throw new Error("Invalid did:peer:2")
+    }
+
     const [, ...elements] = did.split(".")
 
     const doc: any = {
@@ -116,41 +120,56 @@ export default class DIDPeer {
       const encodedValue = element.slice(1)
 
       switch (purposeCode) {
-        case purposeCodeList["Verification"]:
+        case purposeCodeList["Verification"]: {
           const decodedSigningKey = multicodec.rmPrefix(
             multibase.decode(encodedValue)
           )
           if (!doc.authentication) {
             doc.authentication = []
           }
-          doc.authentication.push({
-            id: `#${DIDPeer.keyToIdent(decodedSigningKey, "ed25519-pub")}`,
+          if (!doc.verificationMethod) {
+            doc.verificationMethod = []
+          }
+          let ident = `#${DIDPeer.keyToIdent(decodedSigningKey, "ed25519-pub")}`
+          doc.verificationMethod.push({
+            id: ident,
             type: "Ed25519VerificationKey2018",
             publicKeyMultibase: DIDPeer.keyToMultibase(
               decodedSigningKey,
               "ed25519-pub"
             ),
           })
+          doc.authentication.push(ident)
           break
+        }
 
-        case purposeCodeList["Encryption"]:
+        case purposeCodeList["Encryption"]: {
           const decodedEncryptionKey = multicodec.rmPrefix(
             multibase.decode(encodedValue)
           )
           if (!doc.keyAgreement) {
             doc.keyAgreement = []
           }
+          if (!doc.verificationMethod) {
+            doc.verificationMethod = []
+          }
+          let ident = `#${DIDPeer.keyToIdent(
+            decodedEncryptionKey,
+            "x25519-pub"
+          )}`
           doc.keyAgreement.push({
-            id: `#${DIDPeer.keyToIdent(decodedEncryptionKey, "x25519-pub")}`,
+            id: ident,
             type: "X25519KeyAgreementKey2019",
             publicKeyBase58: DIDPeer.keyToMultibase(
               decodedEncryptionKey,
               "x25519-pub"
             ),
           })
+          doc.keyAgreement.push(ident)
           break
+        }
 
-        case purposeCodeList["Service"]:
+        case purposeCodeList["Service"]: {
           const decodedService = DIDPeer.base64UrlDecode(encodedValue)
           const parsedService = JSON.parse(decodedService, (key, value) => {
             if (reverseCommonStringAbbreviations[key]) {
@@ -160,6 +179,7 @@ export default class DIDPeer {
           })
           doc.service = [parsedService]
           break
+        }
 
         default:
           // Other purpose codes can be handled here
