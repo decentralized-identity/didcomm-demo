@@ -13,6 +13,10 @@ export default class ProfilePage implements m.ClassComponent<ProfileAttributes> 
   id: string;
   connected: boolean = true; // initial state for the connection button
 
+  onInit(vnode: m.Vnode<ProfileAttributes>) {
+
+  }
+
   view(vnode: m.Vnode<ProfileAttributes>) {
     return m(".container.is-fluid", [
       // Top Bar

@@ -1,5 +1,6 @@
 import * as m from "mithril";
 import { DEFAULT_MEDIATOR_URL } from "../constants";
+import ProfileService from "../lib/profile";
 
 interface NewProfileState {
   isCreating: boolean;
@@ -65,13 +66,11 @@ class NewProfile implements m.ClassComponent<NewProfileState> {
                   // Stub: Add logic to generate secrets here
 
                   // Store the profile in localStorage
-                  localStorage.setItem(
-                    this.profileName,
-                    JSON.stringify({
-                      mediatorURL: this.mediatorURL || DEFAULT_MEDIATOR_URL,
-                      secrets: []
-                    })
-                  );
+                  ProfileService.saveProfile({
+                    id: this.profileName,
+                    mediatorURL: this.mediatorURL || DEFAULT_MEDIATOR_URL,
+                    secrets: [],
+                  });
 
                   // Reset state
                   this.isCreating = false;

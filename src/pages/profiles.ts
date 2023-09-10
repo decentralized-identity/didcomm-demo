@@ -13,4 +13,3 @@ class ProfilesPage implements m.ClassComponent {
 }
 
 export default ProfilesPage;
-

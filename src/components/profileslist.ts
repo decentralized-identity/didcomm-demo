@@ -1,13 +1,14 @@
 import * as m from "mithril";
+import ProfileService from "../lib/profile";
 
 export default class ProfilesList implements m.Component {
   deleteProfile(profileName: string) {
-    localStorage.removeItem(profileName);
+    ProfileService.deleteProfile(profileName);
     m.redraw();
   }
 
   view() {
-    const profileNames = Object.keys(localStorage);
+    const profileNames = ProfileService.getProfileIds();
     return m("div", profileNames.map(name => {
       return m(".box.profile", [
         m(".content", [
