@@ -17,6 +17,7 @@ export interface Profile {
 
 export abstract class ProfileService {
   abstract setActiveProfile(profileId: string): void;
+  abstract unsetActiveProfile(): void;
   abstract getActiveProfile(): Profile;
   abstract getActiveProfileId(): string;
   abstract saveProfile(profile: Profile): void;
@@ -31,6 +32,11 @@ export class LocalStorageProfileService extends ProfileService {
   // Set the active profile ID in local storage
   setActiveProfile(profileId: string): void {
     localStorage.setItem(LocalStorageProfileService.ACTIVE_PROFILE_ID_KEY, profileId);
+  }
+
+  // Unset the active profile ID in local storage
+  unsetActiveProfile(): void {
+    localStorage.removeItem(LocalStorageProfileService.ACTIVE_PROFILE_ID_KEY);
   }
 
   // Fetch the active profile from local storage using the active profile ID
@@ -50,7 +56,11 @@ export class LocalStorageProfileService extends ProfileService {
 
   // Retrieve the active profile ID from local storage
   getActiveProfileId(): string {
-    return localStorage.getItem(LocalStorageProfileService.ACTIVE_PROFILE_ID_KEY) || '';
+    const profileId = localStorage.getItem(LocalStorageProfileService.ACTIVE_PROFILE_ID_KEY);
+    if (profileId === null) {
+      throw new Error('No active profile set');
+    }
+    return profileId;
   }
 
   // Save or update the profile data in local storage

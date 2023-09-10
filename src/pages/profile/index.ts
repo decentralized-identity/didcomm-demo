@@ -4,6 +4,7 @@ import Navbar from "./navbar";
 import ConsoleComponent from "./console";
 import JSONEditor from "./jsoneditor";
 import MessagingComponent from "./messaging";
+import ProfileService from "../../lib/profile";
 
 interface ProfileAttributes {
   id: string;
@@ -13,8 +14,12 @@ export default class ProfilePage implements m.ClassComponent<ProfileAttributes> 
   id: string;
   connected: boolean = true; // initial state for the connection button
 
-  onInit(vnode: m.Vnode<ProfileAttributes>) {
+  oninit(vnode: m.Vnode<ProfileAttributes>) {
+    ProfileService.setActiveProfile(vnode.attrs.id);
+  }
 
+  onremove(vnode: m.VnodeDOM<ProfileAttributes, this>) {
+    ProfileService.unsetActiveProfile();
   }
 
   view(vnode: m.Vnode<ProfileAttributes>) {

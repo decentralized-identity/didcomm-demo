@@ -64,13 +64,14 @@ export function generateDid(routingKeys: string[], endpoint: string) {
 }
 
 class DIDResolverImpl implements DIDResolver {
-  async resolve(did: string): DIDDoc | null {
+  async resolve(did: string): Promise<DIDDoc | null> {
     const raw_doc = DIDPeer.resolve(did);
     return {
       id: raw_doc.id,
       authentication: raw_doc.authentication,
       keyAgreement: raw_doc.keyAgreement,
       service: raw_doc.service,
+      verificationMethod: raw_doc.verificationMethod,
     }
   }
 }
