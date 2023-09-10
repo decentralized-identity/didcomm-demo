@@ -36,10 +36,6 @@ export class NullContactService implements ContactService {
         { sender: "You", receiver: "Alice", timestamp: new Date(), content: "Hi!" },
         { sender: "Alice", receiver: "You", timestamp: new Date(), content: "How are you?" },
         { sender: "You", receiver: "Alice", timestamp: new Date(), content: "I'm doing well, how about you?" },
-        { sender: "Alice", receiver: "You", timestamp: new Date(), content: "Hello!" },
-        { sender: "You", receiver: "Alice", timestamp: new Date(), content: "Hi!" },
-        { sender: "Alice", receiver: "You", timestamp: new Date(), content: "How are you?" },
-        { sender: "You", receiver: "Alice", timestamp: new Date(), content: "I'm doing well, how about you?" },
       ],
       2: [
         { sender: "Bob", receiver: "You", timestamp: new Date(), content: "Hey, you there?" },

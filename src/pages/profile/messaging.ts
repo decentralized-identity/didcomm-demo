@@ -100,37 +100,54 @@ class MessageHistoryComponent implements m.ClassComponent<MessageHistoryComponen
   view(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     return m(
       'div',
-      m('button.button.is-small.is-light', {
-        onclick: vnode.attrs.onBack,
-        style: "width: min-content;"
-      }, [
-        m('span.icon', m('i.fas.fa-arrow-left')),
-        m('span', 'Back to Contacts')
-      ]),
-      m(
-        "div",
-        {
-          style: {
-            display: "flex",
-            "flex-direction": "column",
-            "justify-content": "flex-end",
-            padding: "1rem",
-            height: "100%"
-          }
-        },
-        this.messages.map(
-          message =>
-          m('.box',
-            m('.media',
-              m('.media-content', [
-                m('p.title.is-5', message.sender),
-                m('p.subtitle.is-6', message.timestamp.toDateString()),
-                m('p', message.content)
-              ])
-             )
-           )
+      {
+        style: "height: 100%;"
+      },
+      [
+        m('button.button.is-small.is-light', {
+          onclick: vnode.attrs.onBack,
+          style: "width: min-content;"
+        }, [
+          m('span.icon', m('i.fas.fa-arrow-left')),
+          m('span', 'Back to Contacts')
+        ]),
+        m(
+          "div",
+          {
+            style: {
+              display: "flex",
+              "flex-direction": "column",
+              "justify-content": "flex-end",
+              padding: "1rem",
+              "max-height": "calc(100% - 2em)",
+              "height": "calc(100% - 2em)",
+            }
+          },
+          m(
+            "div",
+            {
+              style: {
+                display: "flex",
+                "flex-direction": "column",
+                "max-height": "100%",
+                "overflow-y": "auto",
+              }
+            },
+            this.messages.map(
+              message =>
+              m('.box',
+                m('.media',
+                  m('.media-content', [
+                    m('p.title.is-5', message.sender),
+                    m('p.subtitle.is-6', message.timestamp.toDateString()),
+                    m('p', message.content)
+                  ])
+                 )
+               )
+            )
+          )
         )
-      )
+      ]
     );
   }
 }
