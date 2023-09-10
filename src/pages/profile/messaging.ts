@@ -24,7 +24,12 @@ class ContactListComponent implements m.ClassComponent<ContactListComponentAttrs
   }
 
   view(vnode: m.CVnode<ContactListComponentAttrs>) {
-    return m('div', [
+    return m(
+      'div',
+      {
+        style: "padding: 1em;"
+      },
+      [
       // Contacts Panel
       m('.panel',
         m('.panel-heading',
@@ -95,21 +100,36 @@ class MessageHistoryComponent implements m.ClassComponent<MessageHistoryComponen
   view(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     return m(
       'div',
-      m('button.button.is-small.is-light', { onclick: vnode.attrs.onBack }, [
+      m('button.button.is-small.is-light', {
+        onclick: vnode.attrs.onBack,
+        style: "width: min-content;"
+      }, [
         m('span.icon', m('i.fas.fa-arrow-left')),
         m('span', 'Back to Contacts')
       ]),
-      this.messages.map(
-        message =>
-        m('.box',
-          m('.media',
-            m('.media-content', [
-              m('p.title.is-5', message.sender),
-              m('p.subtitle.is-6', message.timestamp.toDateString()),
-              m('p', message.content)
-            ])
+      m(
+        "div",
+        {
+          style: {
+            display: "flex",
+            "flex-direction": "column",
+            "justify-content": "flex-end",
+            padding: "1rem",
+            height: "100%"
+          }
+        },
+        this.messages.map(
+          message =>
+          m('.box',
+            m('.media',
+              m('.media-content', [
+                m('p.title.is-5', message.sender),
+                m('p.subtitle.is-6', message.timestamp.toDateString()),
+                m('p', message.content)
+              ])
+             )
            )
-         )
+        )
       )
     );
   }

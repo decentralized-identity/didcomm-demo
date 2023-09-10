@@ -55,7 +55,7 @@ export default class ProfilePage implements m.ClassComponent<ProfileAttributes> 
         // Right Column
         m(".column", [
           m("div", { 
-            style: "display: flex; flex-direction: column; justify-content: flex-end; padding: 1rem; background-color: #f5f5f5; height: 75vh;" 
+            style: "background-color: #f5f5f5; height: 75vh;" 
           }, m(MessagingComponent)),
           m("div", { style: "margin-top: 1rem;" }, [
             m("div.field.has-addons", [
