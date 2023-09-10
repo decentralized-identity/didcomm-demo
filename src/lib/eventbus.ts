@@ -1,4 +1,4 @@
-type Callback = (...args: any[]) => void
+type Callback = (...args: any[]) => Promise<void>
 
 export class EventBus {
   private listeners: { [event: string]: Callback[] } = {}
@@ -27,10 +27,10 @@ export class EventBus {
     }
   }
 
-  emit(event: string, ...args: any[]): void {
+  async emit(event: string, ...args: any[]): Promise<void> {
     const listeners = this.listeners[event]
     if (listeners) {
-      listeners.forEach(listener => listener(...args))
+      listeners.forEach(async listener => await listener(...args))
     }
   }
 }

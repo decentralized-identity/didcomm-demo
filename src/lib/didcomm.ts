@@ -1,29 +1,23 @@
 import {
   ed25519,
-  x25519,
   edwardsToMontgomeryPub,
   edwardsToMontgomeryPriv,
 } from "@noble/curves/ed25519"
-import { DIDResolver, DIDDoc, SecretsResolver, Secret } from "didcomm"
+import { DIDResolver, DIDDoc, SecretsResolver, Secret, Message, UnpackMetadata } from "didcomm"
 import DIDPeer from "./peer2"
-import * as multibase from "multibase"
-import * as multicodec from "multicodec"
+import {v4 as uuidv4} from "uuid"
+import { EventBus } from "./eventbus"
 
 function x25519ToSecret(
   did: string,
   x25519KeyPriv: Uint8Array,
   x25519Key: Uint8Array
 ): Secret {
-  const encodedEnckey = multibase
-    .encode("base58btc", multicodec.addPrefix("x25519-pub", x25519Key))
-    .toString()
-  const encIdent = `${did}#${encodedEnckey.slice(1, 9)}`
+  const encIdent = DIDPeer.keyToIdent(x25519Key, "x25519-pub")
   const secretEnc: Secret = {
-    id: encIdent,
+    id: `${did}#${encIdent}`,
     type: "X25519KeyAgreementKey2020",
-    privateKeyMultibase: multibase
-      .encode("base58btc", multicodec.addPrefix("x25519-priv", x25519KeyPriv))
-      .toString(),
+    privateKeyMultibase: DIDPeer.keyToMultibase(x25519KeyPriv, "x25519-priv")
   }
   return secretEnc
 }
@@ -33,14 +27,11 @@ function ed25519ToSecret(
   ed25519KeyPriv: Uint8Array,
   ed25519Key: Uint8Array
 ): Secret {
-  const encodedVerkey = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
-  const verIdent = `${did}#${encodedVerkey.slice(1, 9)}`
+  const verIdent = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
   const secretVer: Secret = {
-    id: verIdent,
+    id: `${did}#${verIdent}`,
     type: "Ed25519VerificationKey2020",
-    privateKeyMultibase: multibase
-      .encode("base58btc", multicodec.addPrefix("x25519-priv", ed25519KeyPriv))
-      .toString(),
+    privateKeyMultibase: DIDPeer.keyToMultibase(ed25519KeyPriv, "ed25519-priv")
   }
   return secretVer
 }
@@ -148,4 +139,105 @@ export class LocalSecretsResolver implements SecretsResolver {
       )
     }
   }
+}
+
+interface DIDCommMessage {
+  type: string
+  body: string
+  [key: string]: any
+}
+
+export class DIDComm {
+  private readonly resolver: DIDPeerResolver
+  private readonly secretsResolver: LocalSecretsResolver
+  constructor() {
+    this.resolver = new DIDPeerResolver()
+    this.secretsResolver = new LocalSecretsResolver()
+  }
+  async generateDidForMediator() {
+    const { did, secrets } = generateDidForMediator()
+    secrets.forEach(secret => this.secretsResolver.store_secret(secret))
+    return { did, secrets }
+  }
+  async generateDid(routingKeys: string[], endpoint: string) {
+    const { did, secrets } = generateDid(routingKeys, endpoint)
+    secrets.forEach(secret => this.secretsResolver.store_secret(secret))
+    return { did, secrets }
+  }
+  async prepareMessage(to: string, from: string, message: DIDCommMessage) {
+    const msg = new Message({
+      id: uuidv4(),
+      typ: "application/didcomm-plain+json",
+      from: from,
+      to: [to],
+      created_time: Date.now(),
+      ...message,
+    })
+    return await msg.pack_encrypted(
+      to, from, null, this.resolver, this.secretsResolver, {forward: true}
+    )
+  }
+  async unpackMessage(message: string): Promise<[Message, UnpackMetadata]> {
+      return await Message.unpack(
+        message, this.resolver, this.secretsResolver, {}
+      )
+  }
+  async sendMessageAndExpectReply(to: string, from: string, message: DIDCommMessage): Promise<[Message, UnpackMetadata]> {
+    const [packed, meta]= await this.prepareMessage(to, from, message)
+    if (!meta.messaging_service) {
+      throw new Error("No messaging service found")
+    }
+
+    try {
+      const response = await fetch(meta.messaging_service.service_endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/didcomm-encrypted+json"
+        },
+        body: packed,
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`Error sending message: ${text}`)
+      }
+
+      const packedResponse = await response.text()
+      return await this.unpackMessage(packedResponse)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  async sendMessage(to: string, from: string, message: DIDCommMessage) {
+    const [packed, meta]= await this.prepareMessage(to, from, message)
+    if (!meta.messaging_service) {
+      throw new Error("No messaging service found")
+    }
+
+    try {
+      const response = await fetch(meta.messaging_service.service_endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/didcomm-encrypted+json"
+        },
+        body: packed,
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`Error sending message: ${text}`)
+      }
+
+      const packedResponse = await response.text()
+      return await this.receiveMessage(packedResponse)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  async receiveMessage(message: string): Promise<void> {
+      const [resp, respMeta] = await Message.unpack(
+        message, this.resolver, this.secretsResolver, {}
+      )
+      EventBus.getInstance().emit("message", resp, respMeta)
+  }    
 }
