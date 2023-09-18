@@ -32,10 +32,29 @@ export default class ProfilePage
         isConnected: this.connected,
         toggleConnection: () => (this.connected = !this.connected),
       }),
-
       // Main Content
       m(".columns", [
         // Left Column
+        m(".column", [
+          m(
+            "div",
+            {
+              style: "background-color: #f5f5f5; height: 75vh;",
+            },
+            m(MessagingComponent)
+          ),
+          m("div", { style: "margin-top: 1rem;" }, [
+            m("div.field.has-addons", [
+              m(
+                "div.control.is-expanded",
+                m("input.input[type=text][placeholder='Type your message...']")
+              ),
+              m("div.control", m("button.button.is-info", "Send")),
+            ]),
+          ]),
+        ]),
+
+        // Right Column
         m(".column.is-7", { style: "display: flex; flex-direction: column;" }, [
           m(
             "div",
@@ -66,26 +85,6 @@ export default class ProfilePage
               ),
               m("div.control", m("button.button", "Save")),
               m("div.control", m("button.button", "Send")),
-            ]),
-          ]),
-        ]),
-
-        // Right Column
-        m(".column", [
-          m(
-            "div",
-            {
-              style: "background-color: #f5f5f5; height: 75vh;",
-            },
-            m(MessagingComponent)
-          ),
-          m("div", { style: "margin-top: 1rem;" }, [
-            m("div.field.has-addons", [
-              m(
-                "div.control.is-expanded",
-                m("input.input[type=text][placeholder='Type your message...']")
-              ),
-              m("div.control", m("button.button.is-info", "Send")),
             ]),
           ]),
         ]),

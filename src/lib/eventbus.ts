@@ -1,36 +1,56 @@
 type Callback = (...args: any[]) => Promise<void>
 
+interface PatternListeners {
+  pattern: RegExp;
+  listeners: Callback[];
+}
+
 export class EventBus {
-  private listeners: { [event: string]: Callback[] } = {}
-  private static instance: EventBus
+  private listeners: PatternListeners[] = [];
+  private static instance: EventBus;
 
   private constructor() {}
 
   static getInstance(): EventBus {
     if (!EventBus.instance) {
-      EventBus.instance = new EventBus()
+      EventBus.instance = new EventBus();
     }
-    return EventBus.instance
+    return EventBus.instance;
   }
 
-  on(event: string, listener: Callback): void {
-    if (!this.listeners[event]) {
-      this.listeners[event] = []
+  on(pattern: RegExp, listener: Callback): void {
+    let found = false;
+    for (const entry of this.listeners) {
+      if (entry.pattern.toString() === pattern.toString()) {
+        entry.listeners.push(listener);
+        found = true;
+        break;
+      }
     }
-    this.listeners[event].push(listener)
+    if (!found) {
+      this.listeners.push({ pattern: pattern, listeners: [listener] });
+    }
   }
 
-  off(event: string, listener: Callback): void {
-    const listeners = this.listeners[event]
-    if (listeners) {
-      this.listeners[event] = listeners.filter(l => l !== listener)
-    }
+  off(pattern: RegExp, listener: Callback): void {
+    this.listeners = this.listeners.filter(entry => {
+      if (entry.pattern.toString() === pattern.toString()) {
+        entry.listeners = entry.listeners.filter(l => l !== listener);
+        return entry.listeners.length > 0;
+      }
+      return true;
+    });
   }
 
   async emit(event: string, ...args: any[]): Promise<void> {
-    const listeners = this.listeners[event]
-    if (listeners) {
-      listeners.forEach(async listener => await listener(...args))
+    for (const entry of this.listeners) {
+      if (entry.pattern.test(event)) {
+        for (const listener of entry.listeners) {
+          await listener(...args);
+        }
+      }
     }
   }
 }
+
+export default EventBus.getInstance();
