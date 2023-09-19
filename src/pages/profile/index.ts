@@ -4,6 +4,8 @@ import ConsoleComponent from "./console"
 import JSONEditor from "./jsoneditor"
 import MessagingComponent from "./messaging"
 import generateProfile, {Profile} from "../../lib/profile"
+import { WorkerCommand, WorkerMessage } from "../../lib/workerTypes"
+import logger from "../../lib/logger"
 
 interface ProfileAttributes {
   actor?: string
@@ -14,11 +16,22 @@ export default class ProfilePage
 {
   connected: boolean = true // initial state for the connection button
   profile: Profile
+  did?: string = ""
+  worker: Worker
 
   oninit(vnode: m.Vnode<ProfileAttributes>) {
     this.profile = generateProfile({ label: vnode.attrs.actor })
     m.route.set('/:actor', {actor: this.profile.label})
-    console.log("ProfilePage oninit", vnode.attrs)
+  }
+
+  oncreate(vnode: m.VnodeDOM<ProfileAttributes, this>) {
+      this.worker = new Worker("../../lib/worker.ts")
+  }
+
+  onDidGenerated(did: string) {
+    logger.log("did generated", did)
+    this.did = did
+    m.redraw()
   }
 
   view(vnode: m.Vnode<ProfileAttributes>) {
@@ -27,6 +40,7 @@ export default class ProfilePage
       m(Navbar, {
         profileName: this.profile.label,
         isConnected: this.connected,
+        did: "testaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         toggleConnection: () => (this.connected = !this.connected),
         onProfileNameChange: (newName: string) => {
           this.profile.label = newName

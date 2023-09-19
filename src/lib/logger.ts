@@ -22,9 +22,9 @@ export interface MessageRecord {
 export class LoggerService {
   private records: Record[] = []
 
-  log(message: string) {
+  log(...messages: string[]) {
     const record = {
-      message,
+      message: messages.join(" "),
       timestamp: new Date(),
       topic: LogTopic.LOG
     }

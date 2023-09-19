@@ -1,30 +1,6 @@
 import {DIDComm, DIDCommMessage} from './didcomm'
 import {IMessage} from "didcomm"
-
-type WorkerCommandType = (
-  'init' |
-  'establishMediation' |
-  'connect' |
-  'disconnect' |
-  'sendMessage'
-)
-
-interface WorkerCommand<T> {
-  type: WorkerCommandType
-  payload: T
-}
-
-type WorkerMessageType = (
-  'messageReceived' |
-  'connected' |
-  'disconnected' |
-  'error'
-)
-
-interface WorkerMessage<T> {
-  type: WorkerMessageType
-  payload: T
-}
+import { WorkerCommand, WorkerMessage } from './workerTypes'
 
 class DIDCommWorker {
   private didcomm: DIDComm
@@ -53,6 +29,7 @@ class DIDCommWorker {
       }
       const routingDid = reply.body.routing_did[0]
       this.did = await this.didcomm.generateDid(routingDid)
+      this.postMessage({type: "didGenerated", payload: this.did})
     }
 
     const [msg, meta] = await this.didcomm.sendMessageAndExpectReply(
