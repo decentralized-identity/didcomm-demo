@@ -1,9 +1,6 @@
-import ProfileService from "./profile"
-
 export interface Contact {
-  id: number
-  label?: string
   did: string
+  label?: string
 }
 
 export interface Message {
@@ -13,25 +10,27 @@ export interface Message {
   content: string
 }
 
-export abstract class ContactService {
-  abstract getContacts(): Contact[]
-  abstract getMessageHistory(contactId: number): Message[]
-  abstract addContact(contact: Partial<Contact>): void
+export interface ContactService {
+  getContacts(): Contact[]
+  getMessageHistory(did: string): Message[]
+  addContact(contact: Contact): void
+  saveMessageHistory(did: string, messages: Message[]): void
+  addMessage(did: string, message: Message): void
 }
 
 export class NullContactService implements ContactService {
   contacts: Contact[] = [
-    { id: 1, label: "Alice", did: "did:example:alice" },
-    { id: 2, label: "Bob", did: "did:example:bob" },
-    { id: 3, label: "Carol", did: "did:example:carol" },
-    { id: 4, label: "Dave", did: "did:example:dave" },
+    { label: "Alice", did: "did:example:alice" },
+    { label: "Bob", did: "did:example:bob" },
+    { label: "Carol", did: "did:example:carol" },
+    { label: "Dave", did: "did:example:dave" },
   ]
   getContacts(): Contact[] {
     return this.contacts
   }
-  getMessageHistory(contactId: number): Message[] {
-    const history: { [contactId: number]: Message[] } = {
-      1: [
+  getMessageHistory(did: string): Message[] {
+    const history: { [did: string]: Message[] } = {
+      "did:example:alice": [
         {
           sender: "Alice",
           receiver: "You",
@@ -57,7 +56,7 @@ export class NullContactService implements ContactService {
           content: "I'm doing well, how about you?",
         },
       ],
-      2: [
+      "did:example:bob": [
         {
           sender: "Bob",
           receiver: "You",
@@ -77,7 +76,7 @@ export class NullContactService implements ContactService {
           content: "Can you help me with something?",
         },
       ],
-      3: [
+      "did:example:carol": [
         {
           sender: "Carol",
           receiver: "You",
@@ -97,7 +96,7 @@ export class NullContactService implements ContactService {
           content: "Can you help me with something?",
         },
       ],
-      4: [
+      "did:example:dave": [
         {
           sender: "Dave",
           receiver: "You",
@@ -106,68 +105,44 @@ export class NullContactService implements ContactService {
         },
       ],
     }
-    return history[contactId]
+    return history[did]
   }
 
-  addContact(contact: Partial<Contact>): void {
-    this.contacts.push({ id: this.contacts.length, ...contact } as Contact)
+  addContact(contact: Contact): void {
+    this.contacts.push(contact)
   }
+
+  saveMessageHistory(did: string, messages: Message[]): void { }
+  addMessage(did: string, message: Message): void { }
 }
 
-export class LocalStorageContactService implements ContactService {
-  private static CONTACTS_KEY = "contacts"
-  private static MESSAGE_HISTORY_KEY = "messageHistory"
-
-  private get profilePrefix(): string {
-    return ProfileService.getActiveProfileId() + "_"
-  }
+export class EphemeralContactService implements ContactService {
+  private contacts: Record<string, Contact> = {}
+  private messages: Record<string, Message[]> = {}
 
   getContacts(): Contact[] {
-    const contactsString = localStorage.getItem(
-      this.profilePrefix + LocalStorageContactService.CONTACTS_KEY
-    )
-    console.log("Retrieved contacts:", contactsString)
-    return contactsString ? JSON.parse(contactsString) : []
+    return Object.values(this.contacts)
   }
 
-  getMessageHistory(contactId: number): Message[] {
-    return new NullContactService().getMessageHistory(1)
-    const messageHistoryString = localStorage.getItem(
-      this.profilePrefix +
-        LocalStorageContactService.MESSAGE_HISTORY_KEY +
-        contactId
-    )
-    return messageHistoryString ? JSON.parse(messageHistoryString) : []
+  getMessageHistory(did: string): Message[] {
+    return this.messages[did] || []
   }
 
-  addContact(contact: Partial<Contact>): void {
-    const contacts = this.getContacts()
-    let label = contact.label?.trim()
-    if (!contact.did) {
-      throw new Error("Contact must have a DID")
+  addContact(contact: Contact): void {
+      this.contacts[contact.did] = contact
+  }
+
+  saveMessageHistory(did: string, messages: Message[]): void {
+      this.messages[did] = messages
+  }
+
+  addMessage(did: string, message: Message): void {
+    if (this.messages[did]) {
+      this.messages[did].push(message)
+    } else {
+      this.messages[did] = [message]
     }
-    let did = contact.did.trim()
-    const newContact: Contact = {
-      label: label,
-      did: did,
-      id: Date.now(), // Using timestamp as a simple unique identifier
-    }
-    contacts.push(newContact)
-    localStorage.setItem(
-      this.profilePrefix + LocalStorageContactService.CONTACTS_KEY,
-      JSON.stringify(contacts)
-    )
-  }
-
-  // You may also want to add a method to save message history back to localStorage
-  saveMessageHistory(contactId: number, messages: Message[]): void {
-    localStorage.setItem(
-      this.profilePrefix +
-        LocalStorageContactService.MESSAGE_HISTORY_KEY +
-        contactId,
-      JSON.stringify(messages)
-    )
   }
 }
 
-export default new LocalStorageContactService()
+export default new EphemeralContactService()

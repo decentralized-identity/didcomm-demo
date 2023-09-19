@@ -54,7 +54,7 @@ export function generateDidForMediator() {
   return { did, secrets: [secretVer, secretEnc] }
 }
 
-export function generateDid(routingKeys: string[], endpoint: string) {
+export function generateDid(routingDid: string) {
   const key = ed25519.utils.randomPrivateKey()
   const enckeyPriv = edwardsToMontgomeryPriv(key)
   const verkey = ed25519.getPublicKey(key)
@@ -62,9 +62,10 @@ export function generateDid(routingKeys: string[], endpoint: string) {
   const service = {
     id: "#didcomm",
     type: "DIDCommMessaging",
-    serviceEndpoint: endpoint,
-    routingKeys: routingKeys,
-    accept: ["didcomm/v2"],
+    serviceEndpoint: {
+      uri: routingDid,
+      accept: ["didcomm/v2"],
+    },
   }
   const did = DIDPeer.generate([verkey], [enckey], service)
 
@@ -86,7 +87,11 @@ export class DIDPeerResolver implements DIDResolver {
   }
 }
 
-export class LocalSecretsResolver implements SecretsResolver {
+export interface SecretsManager extends SecretsResolver {
+  store_secret: (secret: Secret) => void
+}
+
+export class LocalSecretsResolver implements SecretsManager {
   private readonly storageKey = "secretsResolver"
 
   constructor() {
@@ -141,35 +146,108 @@ export class LocalSecretsResolver implements SecretsResolver {
   }
 }
 
-interface DIDCommMessage {
+export class EphemeralSecretsResolver implements SecretsManager {
+  private secrets: Record<string, Secret> = {};
+
+  private static createError(message: string, name: string): Error {
+    const e = new Error(message);
+    e.name = name;
+    return e;
+  }
+
+  async get_secret(secret_id: string): Promise<Secret | null> {
+    try {
+      return this.secrets[secret_id] || null;
+    } catch (error) {
+      throw EphemeralSecretsResolver.createError(
+        "Unable to fetch secret from memory",
+        "DIDCommMemoryError"
+      );
+    }
+  }
+
+  async find_secrets(secret_ids: Array<string>): Promise<Array<string>> {
+    try {
+      return secret_ids.map(id => this.secrets[id]).filter(secret => !!secret).map(secret => secret.id); // Filter out undefined or null values
+    } catch (error) {
+      throw EphemeralSecretsResolver.createError(
+        "Unable to fetch secrets from memory",
+        "DIDCommMemoryError"
+      );
+    }
+  }
+
+  // Helper method to store a secret in memory
+  store_secret(secret: Secret): void {
+    try {
+      this.secrets[secret.id] = secret;
+    } catch (error) {
+      throw EphemeralSecretsResolver.createError(
+        "Unable to store secret in memory",
+        "DIDCommMemoryError"
+      );
+    }
+  }
+}
+
+export interface DIDCommMessage {
   type: string
-  body: string
+  body?: any
   [key: string]: any
 }
 
 export class DIDComm {
   private readonly resolver: DIDPeerResolver
-  private readonly secretsResolver: LocalSecretsResolver
+  private readonly secretsResolver: SecretsManager
+
   constructor() {
     this.resolver = new DIDPeerResolver()
-    this.secretsResolver = new LocalSecretsResolver()
+    this.secretsResolver = new EphemeralSecretsResolver()
   }
-  async generateDidForMediator() {
+
+  async generateDidForMediator(): Promise<string> {
     const { did, secrets } = generateDidForMediator()
     secrets.forEach(secret => this.secretsResolver.store_secret(secret))
-    return { did, secrets }
+    return did
   }
-  async generateDid(routingKeys: string[], endpoint: string) {
-    const { did, secrets } = generateDid(routingKeys, endpoint)
+
+  async generateDid(routingDid: string): Promise<string> {
+    const { did, secrets } = generateDid(routingDid)
     secrets.forEach(secret => this.secretsResolver.store_secret(secret))
-    return { did, secrets }
+    return did
   }
+
+  async resolve(did: string): Promise<DIDDoc | null> {
+    return await this.resolver.resolve(did)
+  }
+
+  /**
+   * Obtain the first websocket endpoint for a given DID.
+   *
+   * @param {string} did The DID to obtain the websocket endpoint for
+   */
+  async wsEndpoint(did: string): Promise<string> {
+    const doc = await this.resolve(did)
+    if (!doc) {
+      throw new Error("Unable to resolve DID")
+    }
+    if (!doc.service) {
+      throw new Error("No service found")
+    }
+    
+    const services = doc.service
+      .filter(s => s.type === "DIDCommMessaging")
+      .filter(s => s.serviceEndpoint.startsWith("ws"))
+    return services[0].serviceEndpoint
+  }
+
   async prepareMessage(to: string, from: string, message: DIDCommMessage) {
     const msg = new Message({
       id: uuidv4(),
       typ: "application/didcomm-plain+json",
       from: from,
       to: [to],
+      body: message.body || {},
       created_time: Date.now(),
       ...message,
     })
@@ -177,11 +255,13 @@ export class DIDComm {
       to, from, null, this.resolver, this.secretsResolver, {forward: true}
     )
   }
+
   async unpackMessage(message: string): Promise<[Message, UnpackMetadata]> {
       return await Message.unpack(
         message, this.resolver, this.secretsResolver, {}
       )
   }
+
   async sendMessageAndExpectReply(to: string, from: string, message: DIDCommMessage): Promise<[Message, UnpackMetadata]> {
     const [packed, meta]= await this.prepareMessage(to, from, message)
     if (!meta.messaging_service) {
@@ -208,6 +288,7 @@ export class DIDComm {
       console.error(error)
     }
   }
+
   async sendMessage(to: string, from: string, message: DIDCommMessage) {
     const [packed, meta]= await this.prepareMessage(to, from, message)
     if (!meta.messaging_service) {
@@ -227,17 +308,14 @@ export class DIDComm {
         const text = await response.text()
         throw new Error(`Error sending message: ${text}`)
       }
-
-      const packedResponse = await response.text()
-      return await this.receiveMessage(packedResponse)
     } catch (error) {
       console.error(error)
     }
   }
-  async receiveMessage(message: string): Promise<void> {
-      const [resp, respMeta] = await Message.unpack(
+
+  async receiveMessage(message: string): Promise<[Message, UnpackMetadata]> {
+      return await Message.unpack(
         message, this.resolver, this.secretsResolver, {}
       )
-      EventBus.getInstance().emit("message", resp, respMeta)
-  }    
+  }
 }
