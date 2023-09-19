@@ -1,34 +1,30 @@
 import * as m from "mithril"
-import { Secret } from "../../lib/profile"
 import Navbar from "./navbar"
 import ConsoleComponent from "./console"
 import JSONEditor from "./jsoneditor"
 import MessagingComponent from "./messaging"
-import ProfileService from "../../lib/profile"
+import generateProfile, {Profile} from "../../lib/profile"
 
 interface ProfileAttributes {
-  id: string
+  actor?: string
 }
 
 export default class ProfilePage
   implements m.ClassComponent<ProfileAttributes>
 {
-  id: string
   connected: boolean = true // initial state for the connection button
+  profile: Profile
 
   oninit(vnode: m.Vnode<ProfileAttributes>) {
-    ProfileService.setActiveProfile(vnode.attrs.id)
-  }
-
-  onremove(vnode: m.VnodeDOM<ProfileAttributes, this>) {
-    ProfileService.unsetActiveProfile()
+    this.profile = generateProfile({ label: vnode.attrs.actor })
+    history.replaceState(null, null, `/${this.profile.label}`)
   }
 
   view(vnode: m.Vnode<ProfileAttributes>) {
     return m(".container.is-fluid", [
       // Top Bar
       m(Navbar, {
-        profileName: vnode.attrs.id,
+        profileName: this.profile.label,
         isConnected: this.connected,
         toggleConnection: () => (this.connected = !this.connected),
       }),

@@ -19,7 +19,7 @@ class ContactListComponent
 
   onAddContact() {
     if (this.newContact.did) {
-      ContactService.addContact(this.newContact)
+      ContactService.addContact(this.newContact as Contact)
       this.contacts = ContactService.getContacts()
       this.isModalOpen = false
     }
@@ -53,7 +53,7 @@ class ContactListComponent
             m(
               "a.panel-block",
               {
-                key: contact.id,
+                key: contact.did,
                 onclick: () => vnode.attrs.onSelect(contact),
               },
               [
@@ -139,7 +139,7 @@ class MessageHistoryComponent
   messages: Message[] = []
 
   oninit(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
-    this.messages = ContactService.getMessageHistory(vnode.attrs.contact.id)
+    this.messages = ContactService.getMessageHistory(vnode.attrs.contact.did)
   }
 
   view(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
