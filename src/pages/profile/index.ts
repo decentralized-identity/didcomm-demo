@@ -17,7 +17,8 @@ export default class ProfilePage
 
   oninit(vnode: m.Vnode<ProfileAttributes>) {
     this.profile = generateProfile({ label: vnode.attrs.actor })
-    history.replaceState(null, null, `/${this.profile.label}`)
+    m.route.set('/:actor', {actor: this.profile.label})
+    console.log("ProfilePage oninit", vnode.attrs)
   }
 
   view(vnode: m.Vnode<ProfileAttributes>) {
@@ -27,6 +28,11 @@ export default class ProfilePage
         profileName: this.profile.label,
         isConnected: this.connected,
         toggleConnection: () => (this.connected = !this.connected),
+        onProfileNameChange: (newName: string) => {
+          this.profile.label = newName
+          m.route.set('/:actor', {actor: this.profile.label})
+          m.redraw()
+        },
       }),
       // Main Content
       m(".columns", [

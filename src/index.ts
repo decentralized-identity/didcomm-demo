@@ -6,5 +6,6 @@ import "bulma/css/bulma.css"
 import "@fortawesome/fontawesome-free/css/all.css"
 
 m.route(document.body, "/", {
-  "/:actor?": withLayout(ProfilePage),
+  "/": withLayout(ProfilePage),
+  "/:actor": withLayout(ProfilePage),
 })
