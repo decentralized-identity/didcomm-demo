@@ -12,6 +12,7 @@ export interface WorkerCommand<T> {
 }
 
 export type WorkerMessageType = (
+  'init' |
   'didGenerated' |
   'messageReceived' |
   'connected' |
@@ -23,4 +24,3 @@ export interface WorkerMessage<T> {
   type: WorkerMessageType
   payload: T
 }
-

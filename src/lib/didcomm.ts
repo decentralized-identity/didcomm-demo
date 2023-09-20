@@ -3,10 +3,9 @@ import {
   edwardsToMontgomeryPub,
   edwardsToMontgomeryPriv,
 } from "@noble/curves/ed25519"
-import { DIDResolver, DIDDoc, SecretsResolver, Secret, Message, UnpackMetadata } from "didcomm"
+import { DIDResolver, DIDDoc, SecretsResolver, Secret, Message, UnpackMetadata, PackEncryptedMetadata, MessagingServiceMetadata } from "didcomm"
 import DIDPeer from "./peer2"
 import {v4 as uuidv4} from "uuid"
-import { EventBus } from "./eventbus"
 
 function x25519ToSecret(
   did: string,
@@ -15,7 +14,7 @@ function x25519ToSecret(
 ): Secret {
   const encIdent = DIDPeer.keyToIdent(x25519Key, "x25519-pub")
   const secretEnc: Secret = {
-    id: `${did}#${encIdent}`,
+    id: `#${encIdent}`,
     type: "X25519KeyAgreementKey2020",
     privateKeyMultibase: DIDPeer.keyToMultibase(x25519KeyPriv, "x25519-priv")
   }
@@ -29,7 +28,7 @@ function ed25519ToSecret(
 ): Secret {
   const verIdent = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
   const secretVer: Secret = {
-    id: `${did}#${verIdent}`,
+    id: `#${verIdent}`,
     type: "Ed25519VerificationKey2020",
     privateKeyMultibase: DIDPeer.keyToMultibase(ed25519KeyPriv, "ed25519-priv")
   }
@@ -156,6 +155,7 @@ export class EphemeralSecretsResolver implements SecretsManager {
   }
 
   async get_secret(secret_id: string): Promise<Secret | null> {
+    console.log("Getting secret: ", secret_id)
     try {
       return this.secrets[secret_id] || null;
     } catch (error) {
@@ -167,6 +167,7 @@ export class EphemeralSecretsResolver implements SecretsManager {
   }
 
   async find_secrets(secret_ids: Array<string>): Promise<Array<string>> {
+    console.log("Finding secrets: ", secret_ids)
     try {
       return secret_ids.map(id => this.secrets[id]).filter(secret => !!secret).map(secret => secret.id); // Filter out undefined or null values
     } catch (error) {
@@ -221,12 +222,7 @@ export class DIDComm {
     return await this.resolver.resolve(did)
   }
 
-  /**
-   * Obtain the first websocket endpoint for a given DID.
-   *
-   * @param {string} did The DID to obtain the websocket endpoint for
-   */
-  async wsEndpoint(did: string): Promise<string> {
+  async resolveDIDCommServices(did: string): Promise<any> {
     const doc = await this.resolve(did)
     if (!doc) {
       throw new Error("Unable to resolve DID")
@@ -237,11 +233,42 @@ export class DIDComm {
     
     const services = doc.service
       .filter(s => s.type === "DIDCommMessaging")
-      .filter(s => s.serviceEndpoint.startsWith("ws"))
-    return services[0].serviceEndpoint
+      .filter(s => s.serviceEndpoint.accept.includes("didcomm/v2"))
+    return services
   }
 
-  async prepareMessage(to: string, from: string, message: DIDCommMessage) {
+  /**
+   * Obtain the first websocket endpoint for a given DID.
+   *
+   * @param {string} did The DID to obtain the websocket endpoint for
+   */
+  async wsEndpoint(did: string): Promise<MessagingServiceMetadata> {
+    const services = await this.resolveDIDCommServices(did)
+    
+    const service = services
+      .filter((s: any) => s.serviceEndpoint.uri.startsWith("ws"))[0]
+    return {
+      id: service.id,
+      service_endpoint: service.serviceEndpoint.uri,
+    }
+  }
+
+  /**
+   * Obtain the first http endpoint for a given DID.
+   *
+   * @param {string} did The DID to obtain the websocket endpoint for
+   */
+  async httpEndpoint(did: string): Promise<MessagingServiceMetadata> {
+    const services = await this.resolveDIDCommServices(did)
+    const service = services
+      .filter((s: any) => s.serviceEndpoint.uri.startsWith("http"))[0]
+    return {
+      id: service.id,
+      service_endpoint: service.serviceEndpoint.uri,
+    }
+  }
+
+  async prepareMessage(to: string, from: string, message: DIDCommMessage): Promise<[string, PackEncryptedMetadata]> {
     const msg = new Message({
       id: uuidv4(),
       typ: "application/didcomm-plain+json",
@@ -251,9 +278,11 @@ export class DIDComm {
       created_time: Date.now(),
       ...message,
     })
-    return await msg.pack_encrypted(
+    const [packed, meta] = await msg.pack_encrypted(
       to, from, null, this.resolver, this.secretsResolver, {forward: true}
     )
+    meta.messaging_service = await this.httpEndpoint(to)
+    return [packed, meta]
   }
 
   async unpackMessage(message: string): Promise<[Message, UnpackMetadata]> {

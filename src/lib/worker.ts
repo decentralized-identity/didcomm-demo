@@ -2,6 +2,8 @@ import {DIDComm, DIDCommMessage} from './didcomm'
 import {IMessage} from "didcomm"
 import { WorkerCommand, WorkerMessage } from './workerTypes'
 
+const ctx: Worker = self as any;
+
 class DIDCommWorker {
   private didcomm: DIDComm
   private didForMediator: string
@@ -10,6 +12,8 @@ class DIDCommWorker {
 
   init() {
     this.didcomm = new DIDComm()
+    console.log("Worker initialized")
+    this.postMessage({type: "init", payload: {}})
   }
 
   async establishMediation({mediatorDid}: {mediatorDid: string}) {
@@ -69,7 +73,7 @@ class DIDCommWorker {
 
   async connect({mediatorDid}: {mediatorDid: string}) {
     const endpoint = await this.didcomm.wsEndpoint(mediatorDid)
-    this.ws = new WebSocket(endpoint)
+    this.ws = new WebSocket(endpoint.service_endpoint)
 
     this.ws.onmessage = async (event) => {
       await this.handlePackedMessage(event.data)
@@ -182,7 +186,10 @@ class DIDCommWorker {
   }
 }
 
-let handler = new DIDCommWorker()
-self.addEventListener('message', async (event: MessageEvent) => {
+const handler = new DIDCommWorker()
+console.log("Created worker: ", handler)
+ctx.onmessage = async (event: MessageEvent) => {
+  console.log("Worker received message: ", event)
   await handler.route(event)
-})
+}
+handler.init()

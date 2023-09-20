@@ -26,9 +26,9 @@ const purposeCodeList: Record<string, string> = {
 
 export default class DIDPeer {
   static keyToMultibase(key: Uint8Array, prefix: multicodec.CodecName): string {
-    return multibase
+    const buffer = multibase
       .encode("base58btc", multicodec.addPrefix(prefix, key))
-      .toString()
+    return String.fromCharCode(...buffer)
   }
 
   static base64UrlEncode(input: string): string {
@@ -69,28 +69,17 @@ export default class DIDPeer {
 
     // Encode keys
     const encodedSigningKeys = signingKeys.map(key => {
-      const encoded = multibase.encode(
-        "base58btc",
-        multicodec.addPrefix("ed25519-pub", key)
-      )
-      return "." + purposeCodeList["Verification"] + encoded.toString()
+      const encoded = DIDPeer.keyToMultibase(key, "ed25519-pub")
+      return "." + purposeCodeList["Verification"] + encoded
     })
 
     const encodedEncryptionKeys = encryptionKeys.map(key => {
-      const encoded = multibase.encode(
-        "base58btc",
-        multicodec.addPrefix("x25519-pub", key)
-      )
+      const encoded = DIDPeer.keyToMultibase(key, "x25519-pub")
       return "." + purposeCodeList["Encryption"] + encoded.toString()
     })
 
     // Encode service block
-    let abbreviatedService = JSON.stringify(serviceBlock, (key, value) => {
-      if (commonStringAbbreviations[key]) {
-        return commonStringAbbreviations[key]
-      }
-      return value
-    })
+    let abbreviatedService = JSON.stringify(DIDPeer.abbreviateCommonStrings(serviceBlock))
     abbreviatedService = abbreviatedService.replace(/\s+/g, "")
     const encodedService = DIDPeer.base64UrlEncode(abbreviatedService)
     const finalService = "." + purposeCodeList["Service"] + encodedService
@@ -103,8 +92,51 @@ export default class DIDPeer {
     )
   }
 
+  static transformOldServiceStyleToNew(service: any): any {
+    if (typeof service.serviceEndpoint === "string") {
+      const endpoint = service.serviceEndpoint
+      service.serviceEndpoint = {
+        uri: endpoint,
+        routingKeys: service.routingKeys || [],
+        accept: service.accept || ["didcomm/v2"],
+      }
+      delete service.routingKeys
+      delete service.accept
+    }
+    return service
+  }
+
+  static expandCommonStringAbbreviations(input: any): any {
+    console.log("Expanding common string abbreviations", input)
+    const expanded = Object.fromEntries(
+      Object.entries(input).map(([key, value]) => {
+        const expandedKey = reverseCommonStringAbbreviations[key] || key
+        const expandedValue = typeof value === 'string'
+          ? (reverseCommonStringAbbreviations[value] || value)
+          : value
+        return [expandedKey, expandedValue]
+      }))
+    console.log("Expanded common string abbreviations", expanded)
+    return expanded
+  }
+
+  static abbreviateCommonStrings(input: any): any {
+    console.log("Abbreviating common string abbreviations", input)
+    const abbreviated = Object.fromEntries(
+      Object.entries(input).map(([key, value]) => {
+        const abbreviatedKey = commonStringAbbreviations[key] || key
+        const abbreviatedValue = typeof value === 'string'
+          ? (commonStringAbbreviations[value] || value)
+          : value
+        return [abbreviatedKey, abbreviatedValue]
+      }))
+    console.log("Abbreviated common string abbreviations", abbreviated)
+    return abbreviated
+  }
+
   // Resolve a DID into a DID Document
   static resolve(did: string) {
+    console.log("Resolving DID: ", did)
     if (!did.startsWith("did:peer:2")) {
       throw new Error("Invalid did:peer:2")
     }
@@ -113,6 +145,7 @@ export default class DIDPeer {
 
     const doc: any = {
       "@context": "https://www.w3.org/ns/did/v1",
+      id: did,
     }
 
     elements.forEach(element => {
@@ -133,7 +166,8 @@ export default class DIDPeer {
           let ident = `#${DIDPeer.keyToIdent(decodedSigningKey, "ed25519-pub")}`
           doc.verificationMethod.push({
             id: ident,
-            type: "Ed25519VerificationKey2018",
+            controller: did,
+            type: "Ed25519VerificationKey2020",
             publicKeyMultibase: DIDPeer.keyToMultibase(
               decodedSigningKey,
               "ed25519-pub"
@@ -157,10 +191,11 @@ export default class DIDPeer {
             decodedEncryptionKey,
             "x25519-pub"
           )}`
-          doc.keyAgreement.push({
+          doc.verificationMethod.push({
             id: ident,
-            type: "X25519KeyAgreementKey2019",
-            publicKeyBase58: DIDPeer.keyToMultibase(
+            controller: did,
+            type: "X25519KeyAgreementKey2020",
+            publicKeyMultibase: DIDPeer.keyToMultibase(
               decodedEncryptionKey,
               "x25519-pub"
             ),
@@ -170,15 +205,24 @@ export default class DIDPeer {
         }
 
         case purposeCodeList["Service"]: {
-          const decodedService = DIDPeer.base64UrlDecode(encodedValue)
-          const parsedService = JSON.parse(decodedService, (key, value) => {
-            if (reverseCommonStringAbbreviations[key]) {
-              return reverseCommonStringAbbreviations[key]
-            }
-            return value
-          })
-          doc.service = [parsedService]
-          break
+          const decodedService = DIDPeer.base64UrlDecode(encodedValue);
+          let services = JSON.parse(decodedService)
+          if (!Array.isArray(services)) {
+            services = [services]
+          }
+          services = services
+            .map(DIDPeer.expandCommonStringAbbreviations)
+            .map((service: any) => {
+              // TODO This is a bandaid! Mediator should include id in services.
+              if (!("id" in service)) {
+                service.id = "#service"
+              }
+              return service
+            })
+            .map(DIDPeer.transformOldServiceStyleToNew)
+
+          doc.service = services;
+          break;
         }
 
         default:
@@ -186,6 +230,7 @@ export default class DIDPeer {
           break
       }
     })
+    console.log(JSON.stringify(doc, null, 2))
 
     return doc
   }

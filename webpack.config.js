@@ -43,11 +43,19 @@ module.exports = {
     }),
   ],
   resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
+    extensions: ['.ts', '.js'],
   },
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'bin'),
   },
   devtool: 'source-map',
+  experiments: {
+    asyncWebAssembly: true
+  },
+  mode: 'development',
+  devServer: {
+    compress: true,
+    port: 9000
+  }
 };

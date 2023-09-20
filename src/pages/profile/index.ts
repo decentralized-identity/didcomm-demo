@@ -6,6 +6,7 @@ import MessagingComponent from "./messaging"
 import generateProfile, {Profile} from "../../lib/profile"
 import { WorkerCommand, WorkerMessage } from "../../lib/workerTypes"
 import logger from "../../lib/logger"
+import { DEFAULT_MEDIATOR } from "../../constants"
 
 interface ProfileAttributes {
   actor?: string
@@ -24,8 +25,27 @@ export default class ProfilePage
     m.route.set('/:actor', {actor: this.profile.label})
   }
 
+  postMessage<T>(message: WorkerCommand<T>) {
+    console.log("Posting message: ", message)
+    this.worker.postMessage(message)
+  }
+
   oncreate(vnode: m.VnodeDOM<ProfileAttributes, this>) {
-      this.worker = new Worker("../../lib/worker.ts")
+    this.worker = new Worker(new URL("../../lib/worker.ts", import.meta.url))
+    this.worker.onmessage = this.handleWorkerMessage.bind(this)
+  }
+
+  handleWorkerMessage(e: MessageEvent<WorkerMessage<any>>) {
+    switch (e.data.type) {
+      case "init":
+        this.postMessage({type: "establishMediation", payload: {mediatorDid: DEFAULT_MEDIATOR}})
+        break
+      case "didGenerated":
+        this.onDidGenerated(e.data.payload)
+      break
+      default:
+        console.log("Unhandled message: ", e.data)
+    }
   }
 
   onDidGenerated(did: string) {
@@ -40,7 +60,7 @@ export default class ProfilePage
       m(Navbar, {
         profileName: this.profile.label,
         isConnected: this.connected,
-        did: "testaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        did: this.did,
         toggleConnection: () => (this.connected = !this.connected),
         onProfileNameChange: (newName: string) => {
           this.profile.label = newName

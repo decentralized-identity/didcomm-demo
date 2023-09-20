@@ -1,8 +1,5 @@
-import {DEFAULT_MEDIATOR_URL} from "../constants"
-
 export interface Profile {
   label: string
-  mediatorURL: string
 }
 
 
@@ -45,6 +42,5 @@ function getRandomActor(): string {
 export default function generateProfile(options: Partial<Profile>): Profile {
   return {
     label: options.label || getRandomActor(),
-    mediatorURL: options.mediatorURL || DEFAULT_MEDIATOR_URL,
   }
 }
