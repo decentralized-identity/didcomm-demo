@@ -154,6 +154,8 @@ class MessageHistoryComponent
   messages: Message[] = []
   content: string = ""
   contact: Contact
+  private editMode: boolean = false
+  private editedContactLabel: string = ""
 
   oninit(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     this.contact = vnode.attrs.contact
@@ -192,6 +194,11 @@ class MessageHistoryComponent
     this.content = ""
   }
 
+  updateLabel(label: string) {
+    this.contact.label = label
+    ContactService.addContact(this.contact as Contact);
+  }
+
   view(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     return m("div.messages", [
       m(
@@ -200,17 +207,62 @@ class MessageHistoryComponent
           style: "height: 100%;",
         },
         [
-          m(
-            "button.button.is-small.is-light",
-            {
-              onclick: vnode.attrs.onBack,
-              style: "width: min-content;",
-            },
-            [
-              m("span.icon", m("i.fas.fa-arrow-left")),
-              m("span", "Back to Contacts"),
-            ]
-          ),
+          m("span.navbar-item", {style: {display: "flex", alignItems: "flex-start"}}, [
+            m(
+              "button.button.is-small.is-light",
+              {
+                onclick: vnode.attrs.onBack,
+                style: "width: min-content;",
+              },
+              [
+                m("span.icon", m("i.fas.fa-arrow-left")),
+                m("span", "Back to Contacts"),
+              ]
+            ),
+            this.editMode ? m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column"}}, [
+              m("input", {
+                value: this.editedContactLabel,
+                oninput: (e: Event) => this.editedContactLabel = (e.target as HTMLInputElement).value,
+                  onblur: () => {
+                  this.updateLabel(this.editedContactLabel)
+                  this.editMode = false
+                },
+                style: {
+                  border: "none",
+                  background: "transparent",
+                  outline: "none",
+                  paddingLeft: "12px",
+                  paddingRight: "40px",
+                  textAlign: "right",
+                },
+                oncreate: (vnode: m.VnodeDOM) => {
+                  const input = vnode.dom as HTMLInputElement
+                  input.focus()
+                  input.setSelectionRange(this.editedContactLabel.length, this.editedContactLabel.length)
+                },
+                onkeydown: (e: KeyboardEvent) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    this.updateLabel(this.editedContactLabel)
+                    this.editMode = false
+                  }
+                },
+              })
+            ]) : m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column"}}, [
+              m("span", {style: {display: "flex", alightItems: "center"}}, [
+                m("span", {style: {marginBottom: "0", marginRight: ".5em", maxWidth: "1000px", minWidth: 0, textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden"}}, this.contact.label || this.contact.did),
+                m("button.button.is-white.is-small", {
+                  onclick: () => {
+                    this.editMode = true
+                    this.editedContactLabel = this.contact.label
+                  },
+                  style: {marginRight: ".5em"}
+                }, [
+                  m("span.icon", [m("i.fas.fa-edit")])
+                ]),
+              ]),
+            ]),
+          ]),
           m(
             "div",
             {
