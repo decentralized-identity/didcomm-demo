@@ -82,9 +82,7 @@ class DIDCommWorker {
     const [msg, meta] = await this.didcomm.sendMessageAndExpectReply(
       mediatorDid, this.didForMediator, {
         type: "https://didcomm.org/messagepickup/3.0/status-request",
-        body: {
-          message_count: 0
-        }
+        body: { }
       }
     )
     const status = msg.as_value()
@@ -100,9 +98,8 @@ class DIDCommWorker {
     logger.log("Discovered WS endpoint: ", endpoint.service_endpoint)
     this.ws = new WebSocket(endpoint.service_endpoint)
 
-    this.ws.onmessage = async (event) => {
-      console.log("ws onmessage: ", event)
-      await this.handlePackedMessage(event.data)
+    this.ws.onmessage = async (event: MessageEvent<Blob>) => {
+      await this.handlePackedMessage(await event.data.text())
     }
     this.ws.onopen = async (event) => {
       console.log("ws onopen", event)
@@ -127,7 +124,15 @@ class DIDCommWorker {
 
   }
 
+  async handlePackedMessage(packed: string) {
+    const [msg, meta] = await this.didcomm.unpackMessage(packed)
+    const message = msg.as_value()
+    logger.recvMessage({to: message.to[0], from: message.from, message: message})
+    return await this.handleMessage(message)
+  }
+
   async handleMessage(message: IMessage) {
+    console.log("handleMessage: ", message)
     switch (message.type) {
       case "https://didcomm.org/messagepickup/3.0/status":
         if (message.body.message_count > 0) {
@@ -137,7 +142,6 @@ class DIDCommWorker {
               body: {
                 limit: message.body.message_count,
               },
-              return_route: "all"
             }
           )
           const delivery = msg.as_value()
@@ -154,8 +158,12 @@ class DIDCommWorker {
           if ("base64" in attachement.data) {
             received.push(attachement.id)
             this.handlePackedMessage(atob(attachement.data.base64))
+          } else if ("json" in attachement.data) {
+            received.push(attachement.id)
+            this.handlePackedMessage(JSON.stringify(attachement.data.json))
           } else {
             console.error("Unhandled attachment: ", attachement)
+            throw new Error("Unhandled attachment")
           }
         })
         const [msg, meta] = await this.didcomm.sendMessageAndExpectReply(
@@ -164,7 +172,6 @@ class DIDCommWorker {
             body: {
               message_id_list: received,
             },
-            return_route: "all"
           }
         )
         const status = msg.as_value()
@@ -178,12 +185,6 @@ class DIDCommWorker {
         break
     }
     this.postMessage({type: "messageReceived", payload: message})
-  }
-
-  async handlePackedMessage(packed: string) {
-    const [msg, meta] = await this.didcomm.unpackMessage(packed)
-    const message = msg.as_value()
-    return await this.handleMessage(message)
   }
 
   async disconnect() {

@@ -34,9 +34,6 @@ class ContactListComponent
   view(vnode: m.CVnode<ContactListComponentAttrs>) {
     return m(
       "div",
-      {
-        style: "padding: 1em;",
-      },
       [
         // Contacts Panel
         m(
@@ -149,7 +146,7 @@ class MessageHistoryComponent
   oninit(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     this.contact = vnode.attrs.contact
     this.messages = ContactService.getMessageHistory(vnode.attrs.contact.did)
-    agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived)
+    agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived.bind(this))
   }
 
   onMessageReceived(message: AgentMessage) {
@@ -176,12 +173,15 @@ class MessageHistoryComponent
         content
       }
     })
-    ContactService.addMessage(this.contact.did, {
+    const message = {
       sender: agent.profile.label,
       receiver: this.contact.label || this.contact.did,
       timestamp: new Date(),
       content: content,
-    })
+    }
+    ContactService.addMessage(this.contact.did, message)
+    this.messages.push(message)
+    m.redraw()
   }
 
   sendClicked() {

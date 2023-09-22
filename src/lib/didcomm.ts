@@ -285,14 +285,14 @@ export class DIDComm {
   }
 
   async unpackMessage(message: string): Promise<[Message, UnpackMetadata]> {
-      return await Message.unpack(
-        message, this.resolver, this.secretsResolver, {}
-      )
+    return await Message.unpack(
+      message, this.resolver, this.secretsResolver, {}
+    )
   }
 
   async sendMessageAndExpectReply(to: string, from: string, message: DIDCommMessage): Promise<[Message, UnpackMetadata]> {
     const [plaintext, packed, meta]= await this.prepareMessage(to, from, message)
-    logger.log("Sending message and expecting reply")
+    logger.sentMessage({to, from, message: plaintext})
     if (!meta.messaging_service) {
       throw new Error("No messaging service found")
     }
@@ -310,7 +310,7 @@ export class DIDComm {
         const text = await response.text()
         throw new Error(`Error sending message: ${text}`)
       }
-      logger.sentMessage({to, from, message: plaintext})
+      logger.log("Message sent successfully.")
 
       const packedResponse = await response.text()
       const unpacked = await this.unpackMessage(packedResponse)
@@ -324,6 +324,7 @@ export class DIDComm {
 
   async sendMessage(to: string, from: string, message: DIDCommMessage) {
     const [plaintext, packed, meta]= await this.prepareMessage(to, from, message)
+    logger.sentMessage({to, from, message: plaintext})
     if (!meta.messaging_service) {
       throw new Error("No messaging service found")
     }
@@ -341,7 +342,9 @@ export class DIDComm {
         const text = await response.text()
         throw new Error(`Error sending message: ${text}`)
       }
-      logger.sentMessage({to, from, message: plaintext})
+      const text = await response.text()
+      console.log("Response:", text)
+      logger.log("Message sent successfully.")
     } catch (error) {
       console.error(error)
     }
