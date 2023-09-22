@@ -21,6 +21,18 @@ class ContactListComponent
 
   oninit() {
     this.contacts = ContactService.getContacts()
+    agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived.bind(this))
+  }
+
+  onMessageReceived(message: AgentMessage) {
+    console.log("FROSTYFROG");
+    console.log(message);
+    if (!ContactService.getContact(message.message.from)) {
+      let newContact = {did: message.message.from};
+      ContactService.addContact(newContact as Contact);
+      this.contacts = ContactService.getContacts()
+      m.redraw()
+    }
   }
 
   onAddContact() {
@@ -150,15 +162,6 @@ class MessageHistoryComponent
   }
 
   onMessageReceived(message: AgentMessage) {
-    ContactService.addMessage(
-      message.sender.did, {
-        sender: message.sender.label || message.sender.did,
-        receiver: message.receiver.label || message.receiver.did,
-        timestamp: new Date(),
-        content: message.message.body.content
-      }
-    )
-
     if (message.sender.did === this.contact.did) {
       this.messages = ContactService.getMessageHistory(this.contact.did)
       m.redraw()
