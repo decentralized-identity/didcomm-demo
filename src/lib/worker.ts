@@ -1,6 +1,7 @@
 import {DIDComm, DIDCommMessage} from './didcomm'
 import {IMessage} from "didcomm"
 import { WorkerCommand, WorkerMessage } from './workerTypes'
+import logger, { LogTopic, Record } from './logger'
 
 const ctx: Worker = self as any;
 
@@ -10,13 +11,19 @@ class DIDCommWorker {
   private did: string
   private ws: WebSocket
 
+  onLog(record: Record) {
+    this.postMessage({type: "log", payload: record})
+  }
+
   init() {
+    logger.subscribe(LogTopic.LOG, this.onLog.bind(this))
     this.didcomm = new DIDComm()
-    console.log("Worker initialized")
     this.postMessage({type: "init", payload: {}})
+    logger.log("Worker initialized.")
   }
 
   async establishMediation({mediatorDid}: {mediatorDid: string}) {
+    logger.log("Establishing mediation with mediator: ", mediatorDid)
     this.didForMediator = await this.didcomm.generateDidForMediator()
     {
       const [msg, meta] = await this.didcomm.sendMessageAndExpectReply(
@@ -88,7 +95,7 @@ class DIDCommWorker {
       this.postMessage({type: "disconnected", payload: event})
     }
 
-    const [live, meta] = await this.didcomm.prepareMessage(
+    const [plaintext, live, meta] = await this.didcomm.prepareMessage(
       mediatorDid, this.didForMediator, {
       type: "https://didcomm.org/messagepickup/3.0/live-delivery-change",
       body: {

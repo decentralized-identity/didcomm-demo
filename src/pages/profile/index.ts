@@ -37,6 +37,9 @@ export default class ProfilePage
 
   handleWorkerMessage(e: MessageEvent<WorkerMessage<any>>) {
     switch (e.data.type) {
+      case "log":
+        logger.log(e.data.payload.message)
+        break
       case "init":
         this.postMessage({type: "establishMediation", payload: {mediatorDid: DEFAULT_MEDIATOR}})
         break
@@ -44,12 +47,13 @@ export default class ProfilePage
         this.onDidGenerated(e.data.payload)
       break
       default:
+        logger.log("Unhandled message: ", e.data.type)
         console.log("Unhandled message: ", e.data)
     }
   }
 
   onDidGenerated(did: string) {
-    logger.log("did generated", did)
+    logger.log("DID Generated:", did)
     this.did = did
     m.redraw()
   }

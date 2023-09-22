@@ -3,9 +3,10 @@ import {
   edwardsToMontgomeryPub,
   edwardsToMontgomeryPriv,
 } from "@noble/curves/ed25519"
-import { DIDResolver, DIDDoc, SecretsResolver, Secret, Message, UnpackMetadata, PackEncryptedMetadata, MessagingServiceMetadata } from "didcomm"
+import { DIDResolver, DIDDoc, SecretsResolver, Secret, Message, UnpackMetadata, PackEncryptedMetadata, MessagingServiceMetadata, IMessage } from "didcomm"
 import DIDPeer from "./peer2"
 import {v4 as uuidv4} from "uuid"
+import logger from "./logger"
 
 function x25519ToSecret(
   did: string,
@@ -266,7 +267,7 @@ export class DIDComm {
     }
   }
 
-  async prepareMessage(to: string, from: string, message: DIDCommMessage): Promise<[string, PackEncryptedMetadata]> {
+  async prepareMessage(to: string, from: string, message: DIDCommMessage): Promise<[IMessage, string, PackEncryptedMetadata]> {
     const msg = new Message({
       id: uuidv4(),
       typ: "application/didcomm-plain+json",
@@ -280,7 +281,7 @@ export class DIDComm {
       to, from, null, this.resolver, this.secretsResolver, {forward: true}
     )
     meta.messaging_service = await this.httpEndpoint(to)
-    return [packed, meta]
+    return [msg.as_value(), packed, meta]
   }
 
   async unpackMessage(message: string): Promise<[Message, UnpackMetadata]> {
@@ -290,7 +291,8 @@ export class DIDComm {
   }
 
   async sendMessageAndExpectReply(to: string, from: string, message: DIDCommMessage): Promise<[Message, UnpackMetadata]> {
-    const [packed, meta]= await this.prepareMessage(to, from, message)
+    const [plaintext, packed, meta]= await this.prepareMessage(to, from, message)
+    logger.log("Sending message and expecting reply")
     if (!meta.messaging_service) {
       throw new Error("No messaging service found")
     }
@@ -308,16 +310,20 @@ export class DIDComm {
         const text = await response.text()
         throw new Error(`Error sending message: ${text}`)
       }
+      logger.sentMessage({to, from, message: plaintext})
 
       const packedResponse = await response.text()
-      return await this.unpackMessage(packedResponse)
+      const unpacked = await this.unpackMessage(packedResponse)
+
+      logger.recvMessage({to, from, message: unpacked[0].as_value()})
+      return unpacked
     } catch (error) {
       console.error(error)
     }
   }
 
   async sendMessage(to: string, from: string, message: DIDCommMessage) {
-    const [packed, meta]= await this.prepareMessage(to, from, message)
+    const [plaintext, packed, meta]= await this.prepareMessage(to, from, message)
     if (!meta.messaging_service) {
       throw new Error("No messaging service found")
     }
@@ -335,14 +341,18 @@ export class DIDComm {
         const text = await response.text()
         throw new Error(`Error sending message: ${text}`)
       }
+      logger.sentMessage({to, from, message: plaintext})
     } catch (error) {
       console.error(error)
     }
   }
 
   async receiveMessage(message: string): Promise<[Message, UnpackMetadata]> {
-      return await Message.unpack(
+      const unpacked = await Message.unpack(
         message, this.resolver, this.secretsResolver, {}
       )
+      const plaintext = unpacked[0].as_value()
+      logger.recvMessage({to: plaintext.to[0], from: plaintext.from, message: plaintext})
+      return unpacked
   }
 }

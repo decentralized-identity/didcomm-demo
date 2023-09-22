@@ -6,7 +6,6 @@ export enum LogTopic {
   LOG_MESSAGE_CONTACT = "log.message.contact",
 }
 
-
 export interface Record {
   message: string
   timestamp: Date
@@ -23,6 +22,7 @@ export class LoggerService {
   private records: Record[] = []
 
   log(...messages: string[]) {
+    console.log(...messages)
     const record = {
       message: messages.join(" "),
       timestamp: new Date(),
@@ -34,20 +34,22 @@ export class LoggerService {
 
   sentMessage(message: MessageRecord) {
     const record = {
-      message: JSON.stringify(message.message, null, 2),
+      message: "Sent: " + JSON.stringify(message.message, null, 2),
       timestamp: new Date(),
       topic: LogTopic.LOG_MESSAGE,
     }
+    console.log("Sent message: ", record.message)
     this.records.push(record)
     EventBus.emit(LogTopic.LOG_MESSAGE_CONTACT + `.${message.to}`, record)
   }
 
   recvMessage(message: MessageRecord) {
     const record = {
-      message: JSON.stringify(message.message, null, 2),
+      message: "Received: " + JSON.stringify(message.message, null, 2),
       timestamp: new Date(),
       topic: LogTopic.LOG_MESSAGE,
     }
+    console.log("Received message: ", record.message)
     this.records.push(record)
     EventBus.emit(LogTopic.LOG_MESSAGE_CONTACT + `.${message.from}`, record)
   }

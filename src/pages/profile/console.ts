@@ -1,4 +1,7 @@
 import * as m from "mithril"
+import logger, { LogTopic, Record } from "../../lib/logger"
+
+import "./console.css"
 
 interface ConsoleAttributes {
   stream: any // Placeholder for now
@@ -67,8 +70,9 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
   autoScroll: boolean = true
   logsViewport: HTMLElement | null = null
 
-  appendLog(entry: any) {
-    this.logs.push(JSON.stringify(entry, null, 2))
+  appendLog(record: Record) {
+    this.logs.push(record.message)
+    m.redraw() // Trigger a redraw to update the logs
   }
 
   filterLogs() {
@@ -106,7 +110,7 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
   }
 
   view() {
-    return m(".console-container", { style: "height: 100%;" }, [
+    return m(".console-container", [
       m(ConsoleControls, {
         copyLogs: this.copyLogs.bind(this),
         clearLogs: this.clearLogs.bind(this),
@@ -114,27 +118,20 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
         setGroup: (group: LogGroups) => (this.currentGroup = group),
       }),
       m(
-        ".logs-viewport",
+        "pre.logs-viewport",
         {
           oncreate: vnode => (this.logsViewport = vnode.dom as HTMLElement),
-          style: "height: 90%; overflow-y: auto;",
           onscroll: (e: Event) => this.handleScroll(e),
         },
-        this.logs.map(log => m("div", log))
+        this.logs.map(log => m("code", log))
       ),
     ])
   }
 
   oncreate(vnode: m.VnodeDOM<ConsoleAttributes>) {
-    // Logic to read from the stream and append to logs
-    // Placeholder: For demo purposes, adding a log every 2 seconds
-    setInterval(() => {
-      this.appendLog({
-        message: `Log at ${new Date().toISOString()}`,
-        group: LogGroups.Everything,
-      })
-      m.redraw() // Trigger a redraw to update the logs
-    }, 2000)
+    logger.subscribe(LogTopic.LOG, async (record: any) => {
+      this.appendLog(record)
+    })
   }
 
   onupdate(vnode: m.VnodeDOM<ConsoleAttributes>) {

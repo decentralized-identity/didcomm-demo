@@ -13,6 +13,7 @@ export interface WorkerCommand<T> {
 
 export type WorkerMessageType = (
   'init' |
+  'log' |
   'didGenerated' |
   'messageReceived' |
   'connected' |
