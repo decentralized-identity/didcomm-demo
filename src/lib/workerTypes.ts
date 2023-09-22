@@ -3,7 +3,8 @@ export type WorkerCommandType = (
   'establishMediation' |
   'connect' |
   'disconnect' |
-  'sendMessage'
+  'sendMessage' |
+  'pickupStatus'
 )
 
 export interface WorkerCommand<T> {

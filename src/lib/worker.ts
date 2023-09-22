@@ -78,31 +78,53 @@ class DIDCommWorker {
     }
   }
 
+  async pickupStatus({mediatorDid}: {mediatorDid: string}) {
+    const [msg, meta] = await this.didcomm.sendMessageAndExpectReply(
+      mediatorDid, this.didForMediator, {
+        type: "https://didcomm.org/messagepickup/3.0/status-request",
+        body: {
+          message_count: 0
+        }
+      }
+    )
+    const status = msg.as_value()
+    if (status.type !== "https://didcomm.org/messagepickup/3.0/status") {
+      throw new Error("Unexpected reply: " + status.type)
+    }
+    await this.handleMessage(status)
+  }
+
   async connect({mediatorDid}: {mediatorDid: string}) {
+    logger.log("Connecting to mediator: ", mediatorDid)
     const endpoint = await this.didcomm.wsEndpoint(mediatorDid)
+    logger.log("Discovered WS endpoint: ", endpoint.service_endpoint)
     this.ws = new WebSocket(endpoint.service_endpoint)
 
     this.ws.onmessage = async (event) => {
+      console.log("ws onmessage: ", event)
       await this.handlePackedMessage(event.data)
     }
-    this.ws.onopen = (event) => {
-      this.postMessage({type: "connected", payload: event})
+    this.ws.onopen = async (event) => {
+      console.log("ws onopen", event)
+      const [plaintext, live, meta] = await this.didcomm.prepareMessage(
+        mediatorDid, this.didForMediator, {
+        type: "https://didcomm.org/messagepickup/3.0/live-delivery-change",
+        body: {
+          live_delivery: true
+        }
+      })
+      this.ws.send(live)
+      this.postMessage({type: "connected", payload: {}})
     }
     this.ws.onerror = (event) => {
-      this.postMessage({type: "error", payload: event})
+      console.log("ws onerror", event)
+      this.postMessage({type: "error", payload: {}})
     }
     this.ws.onclose = (event) => {
-      this.postMessage({type: "disconnected", payload: event})
+      console.log("ws onclose", event)
+      this.postMessage({type: "disconnected", payload: {}})
     }
 
-    const [plaintext, live, meta] = await this.didcomm.prepareMessage(
-      mediatorDid, this.didForMediator, {
-      type: "https://didcomm.org/messagepickup/3.0/live-delivery-change",
-      body: {
-        live_delivery: true
-      }
-    })
-    this.ws.send(live)
   }
 
   async handleMessage(message: IMessage) {

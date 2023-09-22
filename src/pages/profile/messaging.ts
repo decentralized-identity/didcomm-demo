@@ -1,6 +1,12 @@
 // ContactListComponent.ts
 import * as m from "mithril"
 import { default as ContactService, Contact, Message } from "../../lib/contacts"
+import eventbus from "../../lib/eventbus"
+import profile from "../../lib/profile"
+import { IMessage } from "didcomm"
+import agent, { AgentMessage } from "../../lib/agent"
+
+import "./messaging.css"
 
 interface ContactListComponentAttrs {
   onSelect: (contact: Contact) => void
@@ -137,68 +143,133 @@ class MessageHistoryComponent
   implements m.ClassComponent<MessageHistoryComponentAttrs>
 {
   messages: Message[] = []
+  content: string = ""
+  contact: Contact
 
   oninit(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
+    this.contact = vnode.attrs.contact
     this.messages = ContactService.getMessageHistory(vnode.attrs.contact.did)
+    agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived)
+  }
+
+  onMessageReceived(message: AgentMessage) {
+    ContactService.addMessage(
+      message.sender.did, {
+        sender: message.sender.label || message.sender.did,
+        receiver: message.receiver.label || message.receiver.did,
+        timestamp: new Date(),
+        content: message.message.body.content
+      }
+    )
+
+    if (message.sender.did === this.contact.did) {
+      this.messages = ContactService.getMessageHistory(this.contact.did)
+      m.redraw()
+    }
+  }
+
+  async sendMessage(content: string) {
+    await agent.sendMessage(this.contact, {
+      type: "https://didcomm.org/basicmessage/2.0/message",
+      lang: "en",
+      body: {
+        content
+      }
+    })
+    ContactService.addMessage(this.contact.did, {
+      sender: agent.profile.label,
+      receiver: this.contact.label || this.contact.did,
+      timestamp: new Date(),
+      content: content,
+    })
+  }
+
+  sendClicked() {
+    this.sendMessage(this.content)
+    this.content = ""
   }
 
   view(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
-    return m(
-      "div",
-      {
-        style: "height: 100%;",
-      },
-      [
-        m(
-          "button.button.is-small.is-light",
-          {
-            onclick: vnode.attrs.onBack,
-            style: "width: min-content;",
-          },
-          [
-            m("span.icon", m("i.fas.fa-arrow-left")),
-            m("span", "Back to Contacts"),
-          ]
-        ),
-        m(
-          "div",
-          {
-            style: {
-              display: "flex",
-              "flex-direction": "column",
-              "justify-content": "flex-end",
-              padding: "1rem",
-              "max-height": "calc(100% - 2em)",
-              height: "calc(100% - 2em)",
+    return m("div.messages", [
+      m(
+        "div",
+        {
+          style: "height: 100%;",
+        },
+        [
+          m(
+            "button.button.is-small.is-light",
+            {
+              onclick: vnode.attrs.onBack,
+              style: "width: min-content;",
             },
-          },
+            [
+              m("span.icon", m("i.fas.fa-arrow-left")),
+              m("span", "Back to Contacts"),
+            ]
+          ),
           m(
             "div",
             {
               style: {
                 display: "flex",
                 "flex-direction": "column",
-                "max-height": "100%",
-                "overflow-y": "auto",
+                "justify-content": "flex-end",
+                padding: "1rem",
+                "max-height": "calc(100% - 2em)",
+                height: "calc(100% - 2em)",
               },
             },
-            this.messages.map(message =>
-              m(
-                ".box",
+            m(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  "flex-direction": "column",
+                  "max-height": "100%",
+                  "overflow-y": "auto",
+                },
+              },
+              this.messages.map(message =>
                 m(
-                  ".media",
-                  m(".media-content", [
-                    m("p.title.is-5", message.sender),
-                    m("p.subtitle.is-6", message.timestamp.toDateString()),
-                    m("p", message.content),
-                  ])
+                  ".box",
+                  m(
+                    ".media",
+                    m(".media-content", [
+                      m("p.title.is-5", message.sender),
+                      m("p.subtitle.is-6", message.timestamp.toDateString()),
+                      m("p", message.content),
+                    ])
+                  )
                 )
               )
             )
-          )
-        ),
-      ]
-    )
+          ),
+        ]
+      ),
+      m("div", { style: "margin-top: 1rem;" }, [
+        m("div.field.has-addons", [
+          m(
+            "div.control.is-expanded",
+            m(
+              "input.input[type=text][placeholder='Type your message...']",
+              {
+                value: this.content,
+                oninput: (e: Event) => {
+                  this.content = (e.target as HTMLInputElement).value
+                },
+                onkeypress: (e: KeyboardEvent) => {
+                  if (e.key === "Enter") {
+                    this.sendClicked()
+                  }
+                }
+              }
+            )
+          ),
+          m("div.control", m("button.button.is-info", {onclick: this.sendClicked.bind(this)}, "Send")),
+        ]),
+      ]),
+    ])
   }
 }
 

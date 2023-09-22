@@ -14,6 +14,7 @@ export interface ContactService {
   getContacts(): Contact[]
   getMessageHistory(did: string): Message[]
   addContact(contact: Contact): void
+  getContact(did: string): Contact
   saveMessageHistory(did: string, messages: Message[]): void
   addMessage(did: string, message: Message): void
 }
@@ -27,6 +28,9 @@ export class NullContactService implements ContactService {
   ]
   getContacts(): Contact[] {
     return this.contacts
+  }
+  getContact(did: string): Contact {
+    return this.contacts.find(contact => contact.did === did)
   }
   getMessageHistory(did: string): Message[] {
     const history: { [did: string]: Message[] } = {
@@ -122,6 +126,10 @@ export class EphemeralContactService implements ContactService {
 
   getContacts(): Contact[] {
     return Object.values(this.contacts)
+  }
+
+  getContact(did: string): Contact {
+    return this.contacts[did]
   }
 
   getMessageHistory(did: string): Message[] {

@@ -107,7 +107,6 @@ export default class DIDPeer {
   }
 
   static expandCommonStringAbbreviations(input: any): any {
-    console.log("Expanding common string abbreviations", input)
     const expanded = Object.fromEntries(
       Object.entries(input).map(([key, value]) => {
         const expandedKey = reverseCommonStringAbbreviations[key] || key
@@ -116,12 +115,10 @@ export default class DIDPeer {
           : value
         return [expandedKey, expandedValue]
       }))
-    console.log("Expanded common string abbreviations", expanded)
     return expanded
   }
 
   static abbreviateCommonStrings(input: any): any {
-    console.log("Abbreviating common string abbreviations", input)
     const abbreviated = Object.fromEntries(
       Object.entries(input).map(([key, value]) => {
         const abbreviatedKey = commonStringAbbreviations[key] || key
@@ -130,13 +127,11 @@ export default class DIDPeer {
           : value
         return [abbreviatedKey, abbreviatedValue]
       }))
-    console.log("Abbreviated common string abbreviations", abbreviated)
     return abbreviated
   }
 
   // Resolve a DID into a DID Document
   static resolve(did: string) {
-    console.log("Resolving DID: ", did)
     if (!did.startsWith("did:peer:2")) {
       throw new Error("Invalid did:peer:2")
     }
@@ -230,8 +225,6 @@ export default class DIDPeer {
           break
       }
     })
-    console.log(JSON.stringify(doc, null, 2))
-
     return doc
   }
 }

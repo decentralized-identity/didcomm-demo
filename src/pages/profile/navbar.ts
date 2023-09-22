@@ -4,9 +4,8 @@ import Icon from "../../components/icon"
 import "./navbar.css"
 
 import { library } from "@fortawesome/fontawesome-svg-core"
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons"
-import { faCircle } from "@fortawesome/free-solid-svg-icons"
-import { faEdit } from "@fortawesome/free-solid-svg-icons"
+import { faArrowLeft, faCircle, faEdit, faRefresh } from "@fortawesome/free-solid-svg-icons"
+import agent from "../../lib/agent"
 
 library.add(faArrowLeft, faCircle, faEdit)
 
@@ -70,6 +69,10 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
     });
   }
 
+  refreshMessages() {
+    agent.refreshMessages()
+  }
+
   view(vnode: m.Vnode<NavbarAttributes>) {
     const { profileName, isConnected, did, toggleConnection, onProfileNameChange } = vnode.attrs
     const truncatedDid = did && did.length > 20 ? `${did.slice(0, 20)}...` : did;
@@ -125,7 +128,16 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
       ]),
       ]),
       m(".navbar-menu", { class: this.burgerActive ? "is-active" : "" }, [
-        m(".navbar-end", [
+        m(".navbar-end", {style: {display: "flex", alignItems: "center"}}, [
+          m("button.button.is-white", {
+            onclick: () => {
+              this.refreshMessages()
+            },
+            style: {marginRight: ".5em"},
+            title: "Refresh messages"
+          }, [
+            m("span.icon", [m("i.fas.fa-refresh")])
+          ]),
           m(
             "a.navbar-item",
             {

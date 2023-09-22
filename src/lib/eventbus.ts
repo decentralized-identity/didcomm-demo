@@ -1,4 +1,4 @@
-type Callback = (...args: any[]) => Promise<void>
+type Callback = (...args: any[]) => Promise<void> | void
 
 interface PatternListeners {
   pattern: RegExp;
@@ -18,7 +18,10 @@ export class EventBus {
     return EventBus.instance;
   }
 
-  on(pattern: RegExp, listener: Callback): void {
+  on(pattern: RegExp | string, listener: Callback): void {
+    if (typeof pattern === "string") {
+      pattern = new RegExp(pattern);
+    }
     let found = false;
     for (const entry of this.listeners) {
       if (entry.pattern.toString() === pattern.toString()) {
@@ -46,7 +49,10 @@ export class EventBus {
     for (const entry of this.listeners) {
       if (entry.pattern.test(event)) {
         for (const listener of entry.listeners) {
-          await listener(...args);
+          const result = listener(...args);
+          if (result instanceof Promise) {
+            await result
+          }
         }
       }
     }

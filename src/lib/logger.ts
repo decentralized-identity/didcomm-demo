@@ -38,7 +38,6 @@ export class LoggerService {
       timestamp: new Date(),
       topic: LogTopic.LOG_MESSAGE,
     }
-    console.log("Sent message: ", record.message)
     this.records.push(record)
     EventBus.emit(LogTopic.LOG_MESSAGE_CONTACT + `.${message.to}`, record)
   }
@@ -49,7 +48,6 @@ export class LoggerService {
       timestamp: new Date(),
       topic: LogTopic.LOG_MESSAGE,
     }
-    console.log("Received message: ", record.message)
     this.records.push(record)
     EventBus.emit(LogTopic.LOG_MESSAGE_CONTACT + `.${message.from}`, record)
   }

@@ -3,10 +3,8 @@ import Navbar from "./navbar"
 import ConsoleComponent from "./console"
 import JSONEditor from "./jsoneditor"
 import MessagingComponent from "./messaging"
-import generateProfile, {Profile} from "../../lib/profile"
-import { WorkerCommand, WorkerMessage } from "../../lib/workerTypes"
-import logger from "../../lib/logger"
-import { DEFAULT_MEDIATOR } from "../../constants"
+import {Profile, generateProfile} from "../../lib/profile"
+import agent from "../../lib/agent"
 
 interface ProfileAttributes {
   actor?: string
@@ -17,44 +15,17 @@ export default class ProfilePage
 {
   connected: boolean = true // initial state for the connection button
   profile: Profile
-  did?: string = ""
   worker: Worker
 
   oninit(vnode: m.Vnode<ProfileAttributes>) {
-    this.profile = generateProfile({ label: vnode.attrs.actor })
-    m.route.set('/:actor', {actor: this.profile.label})
-  }
-
-  postMessage<T>(message: WorkerCommand<T>) {
-    console.log("Posting message: ", message)
-    this.worker.postMessage(message)
-  }
-
-  oncreate(vnode: m.VnodeDOM<ProfileAttributes, this>) {
-    this.worker = new Worker(new URL("../../lib/worker.ts", import.meta.url))
-    this.worker.onmessage = this.handleWorkerMessage.bind(this)
-  }
-
-  handleWorkerMessage(e: MessageEvent<WorkerMessage<any>>) {
-    switch (e.data.type) {
-      case "log":
-        logger.log(e.data.payload.message)
-        break
-      case "init":
-        this.postMessage({type: "establishMediation", payload: {mediatorDid: DEFAULT_MEDIATOR}})
-        break
-      case "didGenerated":
-        this.onDidGenerated(e.data.payload)
-      break
-      default:
-        logger.log("Unhandled message: ", e.data.type)
-        console.log("Unhandled message: ", e.data)
-    }
+    const profile = generateProfile({ label: vnode.attrs.actor })
+    m.route.set('/:actor', {actor: profile.label})
+    agent.setupProfile(profile)
+    agent.ondid = this.onDidGenerated.bind(this)
   }
 
   onDidGenerated(did: string) {
-    logger.log("DID Generated:", did)
-    this.did = did
+    agent.profile.did = did
     m.redraw()
   }
 
@@ -62,13 +33,13 @@ export default class ProfilePage
     return m(".container.is-fluid", [
       // Top Bar
       m(Navbar, {
-        profileName: this.profile.label,
+        profileName: agent.profile.label,
         isConnected: this.connected,
-        did: this.did,
+        did: agent.profile.did,
         toggleConnection: () => (this.connected = !this.connected),
         onProfileNameChange: (newName: string) => {
-          this.profile.label = newName
-          m.route.set('/:actor', {actor: this.profile.label})
+          agent.profile.label = newName
+          m.route.set('/:actor', {actor: agent.profile.label})
           m.redraw()
         },
       }),
@@ -76,22 +47,7 @@ export default class ProfilePage
       m(".columns", [
         // Left Column
         m(".column", [
-          m(
-            "div",
-            {
-              style: "background-color: #f5f5f5; height: 75vh;",
-            },
-            m(MessagingComponent)
-          ),
-          m("div", { style: "margin-top: 1rem;" }, [
-            m("div.field.has-addons", [
-              m(
-                "div.control.is-expanded",
-                m("input.input[type=text][placeholder='Type your message...']")
-              ),
-              m("div.control", m("button.button.is-info", "Send")),
-            ]),
-          ]),
+          m(MessagingComponent)
         ]),
 
         // Right Column

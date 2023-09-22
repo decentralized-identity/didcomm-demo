@@ -154,7 +154,6 @@ export class EphemeralSecretsResolver implements SecretsManager {
   }
 
   async get_secret(secret_id: string): Promise<Secret | null> {
-    console.log("Getting secret: ", secret_id)
     try {
       return this.secrets[secret_id] || null;
     } catch (error) {
@@ -166,7 +165,6 @@ export class EphemeralSecretsResolver implements SecretsManager {
   }
 
   async find_secrets(secret_ids: Array<string>): Promise<Array<string>> {
-    console.log("Finding secrets: ", secret_ids)
     try {
       return secret_ids.map(id => this.secrets[id]).filter(secret => !!secret).map(secret => secret.id); // Filter out undefined or null values
     } catch (error) {
@@ -280,7 +278,9 @@ export class DIDComm {
     const [packed, meta] = await msg.pack_encrypted(
       to, from, null, this.resolver, this.secretsResolver, {forward: true}
     )
-    meta.messaging_service = await this.httpEndpoint(to)
+    if (!meta.messaging_service) {
+      meta.messaging_service = await this.httpEndpoint(to)
+    }
     return [msg.as_value(), packed, meta]
   }
 

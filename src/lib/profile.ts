@@ -1,5 +1,6 @@
 export interface Profile {
   label: string
+  did?: string
 }
 
 
@@ -39,8 +40,11 @@ function getRandomActor(): string {
 }
 
 
-export default function generateProfile(options: Partial<Profile>): Profile {
-  return {
+let profile: Profile;
+export function generateProfile(options: Partial<Profile>): Profile {
+  profile = {
     label: options.label || getRandomActor(),
   }
+  return profile
 }
+export default profile
