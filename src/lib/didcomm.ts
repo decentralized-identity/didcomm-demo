@@ -14,7 +14,7 @@ function x25519ToSecret(
 ): Secret {
   const encIdent = DIDPeer.keyToIdent(x25519Key, "x25519-pub")
   const secretEnc: Secret = {
-    id: `#${encIdent}`,
+    id: `${did}#${encIdent}`,
     type: "X25519KeyAgreementKey2020",
     privateKeyMultibase: DIDPeer.keyToMultibase(x25519KeyPriv, "x25519-priv")
   }
@@ -28,7 +28,7 @@ function ed25519ToSecret(
 ): Secret {
   const verIdent = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
   const secretVer: Secret = {
-    id: `#${verIdent}`,
+    id: `${did}#${verIdent}`,
     type: "Ed25519VerificationKey2020",
     privateKeyMultibase: DIDPeer.keyToMultibase(ed25519KeyPriv, "ed25519-priv")
   }
@@ -41,9 +41,8 @@ export function generateDidForMediator() {
   const verkey = ed25519.getPublicKey(key)
   const enckey = edwardsToMontgomeryPub(verkey)
   const service = {
-    id: "#didcomm",
     type: "DIDCommMessaging",
-    serviceEndpoint: "didcomm:/transport/queue",
+    serviceEndpoint: "",
     accept: ["didcomm/v2"],
   }
   const did = DIDPeer.generate([verkey], [enckey], service)
@@ -59,7 +58,6 @@ export function generateDid(routingDid: string) {
   const verkey = ed25519.getPublicKey(key)
   const enckey = edwardsToMontgomeryPub(verkey)
   const service = {
-    id: "#didcomm",
     type: "DIDCommMessaging",
     serviceEndpoint: {
       uri: routingDid,

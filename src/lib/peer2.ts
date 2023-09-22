@@ -163,7 +163,7 @@ export default class DIDPeer {
           if (!doc.verificationMethod) {
             doc.verificationMethod = []
           }
-          let ident = `#${DIDPeer.keyToIdent(decodedSigningKey, "ed25519-pub")}`
+          let ident = `${did}#${DIDPeer.keyToIdent(decodedSigningKey, "ed25519-pub")}`
           doc.verificationMethod.push({
             id: ident,
             controller: did,
@@ -187,7 +187,7 @@ export default class DIDPeer {
           if (!doc.verificationMethod) {
             doc.verificationMethod = []
           }
-          let ident = `#${DIDPeer.keyToIdent(
+          let ident = `${did}#${DIDPeer.keyToIdent(
             decodedEncryptionKey,
             "x25519-pub"
           )}`
