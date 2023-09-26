@@ -185,7 +185,6 @@ class MessageHistoryComponent
       content: content,
     }
     ContactService.addMessage(this.contact.did, message)
-    this.messages.push(message)
     m.redraw()
   }
 
