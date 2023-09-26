@@ -22,14 +22,48 @@ class ContactListComponent
   oninit() {
     this.contacts = ContactService.getContacts()
     agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived.bind(this))
+    agent.onMessage("https://didcomm.org/user-profile/1.0/profile", this.onProfileUpdate.bind(this))
+    agent.onMessage("https://didcomm.org/user-profile/1.0/request-profile", this.onProfileRequest.bind(this))
   }
 
-  onMessageReceived(message: AgentMessage) {
-    console.log("FROSTYFROG");
-    console.log(message);
+  async onProfileUpdate(message: AgentMessage) {
+    let contact = ContactService.getContact(message.message.from);
+    if(!contact)
+      return;
+
+    let label = message.message.body?.profile?.displayName;
+    if(!label)
+      return;
+
+    contact.label = label;
+    ContactService.addContact(contact);
+  }
+
+  async onProfileRequest(message: AgentMessage) {
+    let contact = ContactService.getContact(message.message.from);
+    if(!contact)
+      return;
+
+    await agent.sendMessage(contact, {
+      type: "https://didcomm.org/user-profile/1.0/profile",
+      body: {
+        profile: {
+          displayName: agent.profile.label,
+        }
+      }
+    })
+  }
+
+  async onMessageReceived(message: AgentMessage) {
     if (!ContactService.getContact(message.message.from)) {
       let newContact = {did: message.message.from};
       ContactService.addContact(newContact as Contact);
+      await agent.sendMessage(newContact, {
+        type: "https://didcomm.org/user-profile/1.0/request-profile",
+        body: {
+          query: ["displayName"],
+        }
+      })
       this.contacts = ContactService.getContacts()
       m.redraw()
     }
