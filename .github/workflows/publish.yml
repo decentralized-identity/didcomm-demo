@@ -2,7 +2,6 @@ on:
   push:
     branches:
       - main
-      - feat/gh-pages-build
 
 jobs:
   build:
