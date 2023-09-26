@@ -1,0 +1,31 @@
+on:
+  push:
+    branches:
+      - main
+      - feat/gh-pages-build
+
+jobs:
+  build:
+  name: "DIDComm Demo Public Page Build & Deploy"
+  runs-on: ubuntu-latest
+  steps:
+  - uses: actions/checkout@v2
+  - uses: actions/setup-node@v3
+    name: "Use Node.js 18"
+    with:
+      node-version: "18.x"
+  - name: "Install packages"
+    run: npm ci
+  - name: "Build & Pack"
+    run: npm run build
+  - name: "Bundle index page"
+    run: cp public/index.html bin/
+  - name: "Fixup permissions"
+    run: |
+      chmod -c -R +rX "bin/" | while read line; do
+        echo "::warning title=Invalid file permissions automatically fixed::$line"
+      done
+  - name: "Publish Github Pages"
+    uses: actions/upload-artifact@v2
+    with:
+      path: bin
