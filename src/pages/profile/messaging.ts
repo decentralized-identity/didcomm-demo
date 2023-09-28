@@ -192,11 +192,28 @@ class MessageHistoryComponent
   private editedContactLabel: string = ""
   private isModalOpen: boolean = false
   private rawMessageData: string = ""
+  private autoScroll: boolean = true
 
   oninit(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     this.contact = vnode.attrs.contact
     this.messages = ContactService.getMessageHistory(vnode.attrs.contact.did)
     agent.onMessage("messageReceived", this.onMessageReceived.bind(this))
+  }
+
+  handleScroll(event: Event) {
+    const container = event.target as HTMLElement
+
+    // Check if we're close to the bottom
+    const isAtBottom =
+      container.scrollHeight - container.scrollTop <= container.clientHeight + 5
+    this.autoScroll = isAtBottom
+  }
+
+  onupdate(vnode: m.VnodeDOM<MessageHistoryComponentAttrs>) {
+    if (this.autoScroll) {
+      const container = vnode.dom.querySelector("#message-box") as HTMLElement
+      container.scrollTop = container.scrollHeight
+    }
   }
 
   onMessageReceived(message: AgentMessage) {
@@ -363,7 +380,7 @@ class MessageHistoryComponent
               },
             },
             m(
-              "div",
+              "div#message-box",
               {
                 style: {
                   display: "flex",
@@ -371,6 +388,7 @@ class MessageHistoryComponent
                   "max-height": "100%",
                   "overflow-y": "auto",
                 },
+                onscroll: (e: Event) => this.handleScroll(e),
               },
               this.messages.map((messages) => this.handleMessageView(messages))
             )
