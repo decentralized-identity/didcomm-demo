@@ -8,6 +8,8 @@ export interface Message {
   receiver: string
   timestamp: Date
   content: string
+  type?: string
+  raw?: any
 }
 
 export interface ContactService {

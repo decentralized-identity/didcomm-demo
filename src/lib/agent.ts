@@ -67,8 +67,7 @@ export class Agent {
     const to = message.to[0] == this.profile.did ? this.profile as Contact : ContactService.getContact(message.to[0])
     eventbus.emit("messageReceived", {sender: from, receiver: to, message})
     eventbus.emit(message.type, {sender: from, receiver: to, message})
-    if(ContactService.getContact(message.from) &&
-       message.type == "https://didcomm.org/basicmessage/2.0/message") {
+    if(ContactService.getContact(message.from)) {
       let fromName = message.from;
       if(from)
         fromName = from.label || from.did;
@@ -77,7 +76,9 @@ export class Agent {
           sender: fromName,
           receiver: to.label || to.did,
           timestamp: new Date(),
-          content: message.body.content
+          content: message.body.content,
+          type: message.type,
+          raw: message,
         }
       )
     }

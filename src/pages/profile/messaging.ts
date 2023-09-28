@@ -190,35 +190,39 @@ class MessageHistoryComponent
   contact: Contact
   private editMode: boolean = false
   private editedContactLabel: string = ""
+  private isModalOpen: boolean = false
+  private rawMessageData: string = ""
 
   oninit(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     this.contact = vnode.attrs.contact
     this.messages = ContactService.getMessageHistory(vnode.attrs.contact.did)
-    agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived.bind(this))
+    agent.onMessage("messageReceived", this.onMessageReceived.bind(this))
   }
 
   onMessageReceived(message: AgentMessage) {
-    if (message.sender.did === this.contact.did) {
+    if (message?.sender?.did === this?.contact?.did) {
       this.messages = ContactService.getMessageHistory(this.contact.did)
       m.redraw()
     }
   }
 
   async sendMessage(content: string) {
-    await agent.sendMessage(this.contact, {
+    const message = {
       type: "https://didcomm.org/basicmessage/2.0/message",
       lang: "en",
       body: {
         content
       }
-    })
-    const message = {
+    };
+    await agent.sendMessage(this.contact, message)
+    const internalMessage = {
       sender: agent.profile.label,
       receiver: this.contact.label || this.contact.did,
       timestamp: new Date(),
       content: content,
+      type: message.type,
     }
-    ContactService.addMessage(this.contact.did, message)
+    ContactService.addMessage(this.contact.did, internalMessage)
     m.redraw()
   }
 
@@ -230,6 +234,56 @@ class MessageHistoryComponent
   updateLabel(label: string) {
     this.contact.label = label
     ContactService.addContact(this.contact as Contact);
+  }
+
+  viewBasicMessage(message: Message) {
+    return m(
+      ".box",
+      m(
+        ".media",
+        m(".media-content", [
+          m("p.title.is-5", {title: message.type}, message.sender),
+          m("p.subtitle.is-6", message.timestamp.toDateString()),
+          m("p", message.content),
+        ])
+      )
+    )
+  }
+
+  viewUnknownMessage(message: Message) {
+    return m(
+      ".message.is-danger",
+      [
+        m(".message-header", [
+          m("p", "Unknown Message Type"),
+        ]),
+        m(".message-body", [
+          m("p.title.is-5", {title: message.type}, message.sender),
+          m("p.subtitle.is-6", message.timestamp.toDateString()),
+          m("p", [
+            m("a", {href: message.type}, message.type),
+            m(
+              "button.button.is-small.is-info.is-light",
+              {
+                onclick: () => {
+                  this.isModalOpen = true
+                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
+                }
+              },
+              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
+            ),
+          ]),
+        ])
+      ])
+  }
+
+  handleMessageView(message: Message) {
+    switch(message.type) {
+      case "https://didcomm.org/basicmessage/2.0/message":
+      return this.viewBasicMessage(message);
+      default:
+        return this.viewUnknownMessage(message);
+    }
   }
 
   view(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
@@ -318,22 +372,61 @@ class MessageHistoryComponent
                   "overflow-y": "auto",
                 },
               },
-              this.messages.map(message =>
-                m(
-                  ".box",
-                  m(
-                    ".media",
-                    m(".media-content", [
-                      m("p.title.is-5", message.sender),
-                      m("p.subtitle.is-6", message.timestamp.toDateString()),
-                      m("p", message.content),
-                    ])
-                  )
-                )
-              )
+              this.messages.map((messages) => this.handleMessageView(messages))
             )
           ),
-        ]
+        ],
+        // Unknown Message Dialog
+        this.isModalOpen &&
+          m(".modal.is-active", [
+            m(".modal-background", {
+              onclick: () => (this.isModalOpen = false),
+            }),
+            m(".modal-card", {
+              style: {
+                maxWidth: "calc(100vw - 40px)",
+                width: "100%",
+              }
+            },
+            [
+              m("header.modal-card-head", [
+                m("p.modal-card-title", "Raw DIDComm Message"),
+                m("button.delete", {
+                  "aria-label": "close",
+                  onclick: () => (this.isModalOpen = false),
+                }),
+              ]),
+              m("section.modal-card-body", [
+                m(".field", [
+                  m(
+                    "div.control",
+                    m(
+                      'textarea.textarea.is-normal[readonly]',
+                      {
+                        style: {
+                          width: "100%",
+                          height: "100%",
+                        }
+                      },
+                      this.rawMessageData
+                    )
+                  ),
+                ]),
+              ]),
+              m("footer.modal-card-foot", {
+                style: {
+                  flexDirection: "row-reverse"
+                }
+              },
+              [
+                m(
+                  "button.button",
+                  { onclick: () => (this.isModalOpen = false) },
+                  "Exit"
+                ),
+              ]),
+            ]),
+          ]),
       ),
       m("div", { style: "margin-top: 1rem;" }, [
         m("div.field.has-addons", [
