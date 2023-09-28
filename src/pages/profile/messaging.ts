@@ -102,12 +102,38 @@ class ContactListComponent
             m(
               "a.panel-block",
               {
+                style: {
+                  position: "relative",
+                },
                 key: contact.did,
                 onclick: () => vnode.attrs.onSelect(contact),
               },
               [
                 m("span.panel-icon", m("i.fas.fa-user")),
-                m("span", contact.label || contact.did),
+                m("div", {
+                  style: {
+                    display: "inline-block",
+                    position: "relative",
+                    width: "100%",
+                    marginTop: "-0.5em",
+                    minHeight: "1em",
+                  }
+                },
+                m("span",
+                  {
+                    style: {
+                      width: "100%",
+                      top: 0,
+                      left: 0,
+                      position: "absolute",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                    }
+                  },
+                  contact.label || contact.did
+                 ),
+                 ),
               ]
             )
           )
@@ -252,38 +278,68 @@ class MessageHistoryComponent
                 m("span", "Back to Contacts"),
               ]
             ),
-            this.editMode ? m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column"}}, [
-              m("input", {
-                value: this.editedContactLabel,
-                oninput: (e: Event) => this.editedContactLabel = (e.target as HTMLInputElement).value,
-                  onblur: () => {
-                  this.updateLabel(this.editedContactLabel)
-                  this.editMode = false
-                },
-                style: {
-                  border: "none",
-                  background: "transparent",
-                  outline: "none",
-                  paddingLeft: "12px",
-                  paddingRight: "40px",
-                  textAlign: "right",
-                },
-                oncreate: (vnode: m.VnodeDOM) => {
-                  const input = vnode.dom as HTMLInputElement
-                  input.focus()
-                  input.setSelectionRange(this.editedContactLabel.length, this.editedContactLabel.length)
-                },
-                onkeydown: (e: KeyboardEvent) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
+            m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column", position: "relative"}}, [
+              this.editMode ? 
+                m("span", {style: {display: "flex", alignItems: "center", position: "absolute", width: "100%"}}, [
+                m("input", {
+                  value: this.editedContactLabel,
+                  oninput: (e: Event) => this.editedContactLabel = (e.target as HTMLInputElement).value,
+                  style: {
+                    border: "none",
+                    background: "transparent",
+                    outline: "none",
+                    paddingLeft: "12px",
+                    paddingRight: "12px",
+                    width: "100%",
+                    textAlign: "right",
+                    fontSize: "1em",
+                  },
+                  oncreate: (vnode: m.VnodeDOM) => {
+                    const input = vnode.dom as HTMLInputElement
+                    input.focus()
+                    input.setSelectionRange(this.editedContactLabel.length, this.editedContactLabel.length)
+                  },
+                  onkeydown: (e: KeyboardEvent) => {
+                    if (e.key === 'Escape') {
+                      e.preventDefault()
+                      this.editMode = false
+                    }
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      this.updateLabel(this.editedContactLabel)
+                      this.editMode = false
+                    }
+                  }
+                }),
+                m("button.button.is-white.is-small", {
+                  onclick: () => {
+                    this.editMode = false
+                  },
+                  style: {marginRight: ".5em"}
+                }, [
+                  m("span.icon", [m("i.fas.fa-cancel")])
+                ]),
+                m("button.button.is-white.is-small", {
+                  onclick: () => {
                     this.updateLabel(this.editedContactLabel)
                     this.editMode = false
+                  },
+                  style: {marginRight: ".5em"}
+                }, [
+                  m("span.icon", [m("i.fas.fa-save")])
+                ]),
+              ]) : m("span", {style: {display: "flex", alignItems: "center", position: "absolute", width: "100%"}}, [
+                m("span", {
+                  style: {
+                    marginBottom: "0",
+                    textAlign: "right",
+                    marginRight: ".5em",
+                    width: "100%",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden"
                   }
-                },
-              })
-            ]) : m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column"}}, [
-              m("span", {style: {display: "flex", alightItems: "center"}}, [
-                m("span", {style: {marginBottom: "0", marginRight: ".5em", maxWidth: "1000px", minWidth: 0, textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden"}}, this.contact.label || this.contact.did),
+                }, this.contact.label || this.contact.did),
                 m("button.button.is-white.is-small", {
                   onclick: () => {
                     this.editMode = true
