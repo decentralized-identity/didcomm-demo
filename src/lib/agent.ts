@@ -13,6 +13,13 @@ export interface AgentMessage {
   message: IMessage
 }
 
+const IMPLEMENTED_PROTOCOLS = [
+  "https://didcomm.org/discover-features/2.0/queries",
+  "https://didcomm.org/trust-ping/2.0/ping",
+  "https://didcomm.org/basicmessage/2.0/message",
+  "https://didcomm.org/user-profile/1.0/request-profile",
+];
+
 export class Agent {
   public profile: Profile
   private worker: Worker
@@ -62,9 +69,64 @@ export class Agent {
     eventbus.on("didGenerated", callback)
   }
 
+  private handleDiscoverFeatures(message: IMessage) {
+    const regexEscape = (s) => s.replace(/([.*+?$^=!:{}()|\[\]\/\\])/g, "\\$1");
+    const createRegex = (query) => (new RegExp(`^${query.split("*").map(regexEscape).join(".*")}$`}))
+    let protocolResponse = [];
+
+    // Loop through all queries, then all implemented protocols and build up a
+    // list of supported protocols that match the user's request
+    for(let query in message.body.queries) {
+
+      // Rudimentary implementation, ignoring all except protocol requests
+      if(query["feature-type"] != "protocol")
+        continue
+
+      for(let protocol in IMPLEMENTED_PROTOCOLS) {
+        if(createRegex(query).test(protocol)) {
+          protocolResponse.append({
+            "feature-type": "protocol",
+            "id": protocol,
+          })
+        }
+      }
+    }
+    const response = {
+      "id": "https://didcomm.org/discover-features/2.0/disclose",
+      "thid": message.id,
+      "body": {
+        "disclosures": protocolResponse
+      }
+    }
+    return response
+  }
+
+  private handleCoreProtocolMessage(message: IMessage) {
+    switch(message.type) {
+      case "https://didcomm.org/trust-ping/2.0/ping":
+        if(message.body?.response_requested !== false) {
+          this.sendMessage(message.from, {
+            "type": "https://didcomm.org/trust-ping/2.0/ping-response",
+            "thid": message.id,
+          })
+        }
+        break;
+      case "https://didcomm.org/discover-features/2.0/queries":
+        const discloseMessage = this.handleDiscoverFeatures(message)
+        this.sendMessage(message.from, discloseMessage)
+        break;
+    }
+  }
+
   private onMessageReceived(message: IMessage) {
     const from = message.from == this.profile.did ? this.profile as Contact : ContactService.getContact(message.from)
     const to = message.to[0] == this.profile.did ? this.profile as Contact : ContactService.getContact(message.to[0])
+
+    // Handle core protocols first, but only if they are destined for us. Don't
+    // handle them if they were sent by us.
+    if(to.did == this.profile.did)
+      this.handleCoreProtocolMessage(message)
+
     eventbus.emit("messageReceived", {sender: from, receiver: to, message})
     eventbus.emit(message.type, {sender: from, receiver: to, message})
     if(ContactService.getContact(message.from)) {
