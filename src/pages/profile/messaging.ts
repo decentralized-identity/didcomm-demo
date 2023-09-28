@@ -123,8 +123,6 @@ class ContactListComponent
                   {
                     style: {
                       width: "100%",
-                      top: 0,
-                      left: 0,
                       position: "absolute",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
