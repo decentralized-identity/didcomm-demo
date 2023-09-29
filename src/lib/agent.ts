@@ -158,6 +158,10 @@ export class Agent {
     eventbus.on(type, callback)
   }
 
+  public onAnyMessage(callback: (message: AgentMessage) => void) {
+    eventbus.on("messageReceived", callback);
+  }
+
   public async sendMessage(to: Contact, message: DIDCommMessage) {
     this.postMessage({type: "sendMessage", payload: {to: to.did, message}})
   }

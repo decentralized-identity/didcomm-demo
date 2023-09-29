@@ -21,7 +21,7 @@ class ContactListComponent
 
   oninit() {
     this.contacts = ContactService.getContacts()
-    agent.onMessage("messageReceived", this.onMessageReceived.bind(this))
+    agent.onAnyMessage(this.onMessageReceived.bind(this))
     agent.onMessage("https://didcomm.org/user-profile/1.0/profile", this.onProfileUpdate.bind(this))
     agent.onMessage("https://didcomm.org/user-profile/1.0/request-profile", this.onProfileRequest.bind(this))
   }
