@@ -13,11 +13,11 @@ export interface AgentMessage {
   message: IMessage
 }
 
-const IMPLEMENTED_MESSAGE_TYPES = [
-  "https://didcomm.org/discover-features/2.0/queries",
-  "https://didcomm.org/trust-ping/2.0/ping",
-  "https://didcomm.org/basicmessage/2.0/message",
-  "https://didcomm.org/user-profile/1.0/request-profile",
+const IMPLEMENTED_PROTOCOLS = [
+  "https://didcomm.org/discover-features/2.0",
+  "https://didcomm.org/trust-ping/2.0",
+  "https://didcomm.org/basicmessage/2.0",
+  "https://didcomm.org/user-profile/1.0",
 ];
 
 export class Agent {
