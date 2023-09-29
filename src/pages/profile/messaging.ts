@@ -21,7 +21,7 @@ class ContactListComponent
 
   oninit() {
     this.contacts = ContactService.getContacts()
-    agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived.bind(this))
+    agent.onAnyMessage(this.onMessageReceived.bind(this))
     agent.onMessage("https://didcomm.org/user-profile/1.0/profile", this.onProfileUpdate.bind(this))
     agent.onMessage("https://didcomm.org/user-profile/1.0/request-profile", this.onProfileRequest.bind(this))
   }
@@ -43,37 +43,35 @@ class ContactListComponent
     let contact = ContactService.getContact(message.message.from);
     if(!contact)
       return;
-
-    await agent.sendMessage(contact, {
-      type: "https://didcomm.org/user-profile/1.0/profile",
-      body: {
-        profile: {
-          displayName: agent.profile.label,
-        }
-      }
-    })
+    await agent.sendProfile(contact)
   }
 
   async onMessageReceived(message: AgentMessage) {
+    if(message.message.to[0]!=agent.profile.did)
+      return;
     if (!ContactService.getContact(message.message.from)) {
       let newContact = {did: message.message.from};
       ContactService.addContact(newContact as Contact);
-      await agent.sendMessage(newContact, {
-        type: "https://didcomm.org/user-profile/1.0/request-profile",
-        body: {
-          query: ["displayName"],
-        }
-      })
+      if(message.message.type != "https://didcomm.org/user-profile/1.0/profile") {
+        await agent.requestProfile(newContact)
+      }
       this.contacts = ContactService.getContacts()
       m.redraw()
     }
   }
 
-  onAddContact() {
+  async onAddContact() {
     if (this.newContact.did) {
       ContactService.addContact(this.newContact as Contact)
       this.contacts = ContactService.getContacts()
       this.isModalOpen = false
+      agent.sendProfile(this.newContact as Contact)
+      setTimeout(async () => {
+        if(!this.newContact.label)
+          await agent.requestProfile(this.newContact as Contact)
+        agent.sendFeatureDiscovery(this.newContact as Contact)
+      }, 500);
+      //this.requestFeatures(this.newContact)
     }
   }
 
@@ -185,7 +183,7 @@ class ContactListComponent
               m("footer.modal-card-foot", [
                 m(
                   "button.button.is-success",
-                  { onclick: () => this.onAddContact() },
+                  { onclick: async () => await this.onAddContact() },
                   "Save"
                 ),
                 m(
@@ -214,35 +212,48 @@ class MessageHistoryComponent
   contact: Contact
   private editMode: boolean = false
   private editedContactLabel: string = ""
+  private isModalOpen: boolean = false
+  private rawMessageData: string = ""
+  private autoScroll: boolean = true
 
   oninit(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     this.contact = vnode.attrs.contact
     this.messages = ContactService.getMessageHistory(vnode.attrs.contact.did)
-    agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived.bind(this))
+    agent.onMessage("messageReceived", this.onMessageReceived.bind(this))
+  }
+
+  handleScroll(event: Event) {
+    const container = event.target as HTMLElement
+
+    // Check if we're close to the bottom
+    const isAtBottom =
+      container.scrollHeight - container.scrollTop <= container.clientHeight + 5
+    this.autoScroll = isAtBottom
+  }
+
+  onupdate(vnode: m.VnodeDOM<MessageHistoryComponentAttrs>) {
+    if (this.autoScroll) {
+      const container = vnode.dom.querySelector("#message-box") as HTMLElement
+      container.scrollTop = container.scrollHeight
+    }
   }
 
   onMessageReceived(message: AgentMessage) {
-    if (message.sender.did === this.contact.did) {
+    if (message?.sender?.did === this?.contact?.did) {
       this.messages = ContactService.getMessageHistory(this.contact.did)
       m.redraw()
     }
   }
 
   async sendMessage(content: string) {
-    await agent.sendMessage(this.contact, {
+    const message = {
       type: "https://didcomm.org/basicmessage/2.0/message",
       lang: "en",
       body: {
         content
       }
-    })
-    const message = {
-      sender: agent.profile.label,
-      receiver: this.contact.label || this.contact.did,
-      timestamp: new Date(),
-      content: content,
-    }
-    ContactService.addMessage(this.contact.did, message)
+    };
+    await agent.sendMessage(this.contact, message)
     m.redraw()
   }
 
@@ -254,6 +265,120 @@ class MessageHistoryComponent
   updateLabel(label: string) {
     this.contact.label = label
     ContactService.addContact(this.contact as Contact);
+  }
+
+  viewMessageBoxHeader(header: string, message: Message) {
+    const isSelf = message.raw?.from == agent.profile.did
+    const icon = isSelf ? "right-from-bracket" : "right-to-bracket"
+    return m("div", {style: {width: "100%"}}, [
+      m("span.icon", {style: {float: "right"}}, m(`i.fas.fa-${icon}`)),
+      m("p", `${header} - ${message.timestamp.toDateString()}`),
+    ])
+  }
+
+  viewBasicMessage(message: Message) {
+    return m(
+      ".box",
+      m(
+        ".media",
+        m(".media-content", [
+          m("p.title.is-5", {title: message.type}, message.sender),
+          m("p.subtitle.is-6", message.timestamp.toDateString()),
+          m("p", message.content),
+        ])
+      )
+    )
+  }
+
+  viewProfileMessage(message: Message) {
+    const isSelf = message.raw?.from == agent.profile.did
+    return m(
+      `.message.is-small.is-${isSelf ? "link" : "info"}`,
+      [
+        m(".message-header", [
+          this.viewMessageBoxHeader("Profile Data", message),
+        ]),
+        m(".message-body", [
+          m("p", [
+            m("p", `New Display Name: ${message.raw.body?.profile?.displayName}`),
+            m(
+              "button.button.is-small.is-info.is-light",
+              {
+                onclick: () => {
+                  this.isModalOpen = true
+                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
+                }
+              },
+              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
+            ),
+          ]),
+        ])
+      ])
+  }
+
+  viewProfileRequestMessage(message: Message) {
+    const isSelf = message.raw?.from == agent.profile.did
+    return m(
+      `.message.is-small.is-${isSelf ? "link" : "info"}`,
+      [
+        m(".message-header", [
+          this.viewMessageBoxHeader("Profile Request", message),
+        ]),
+        m(".message-body", [
+          m("p", [
+            m("p", message.raw.body?.profile?.displayName),
+            m(
+              "button.button.is-small.is-info.is-light",
+              {
+                onclick: () => {
+                  this.isModalOpen = true
+                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
+                }
+              },
+              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
+            ),
+          ]),
+        ])
+      ])
+  }
+
+  viewUnknownMessage(message: Message) {
+    return m(
+      ".message.is-danger",
+      [
+        m(".message-header", [
+          this.viewMessageBoxHeader("Unknown Message Type", message),
+        ]),
+        m(".message-body", [
+          m("p.title.is-5", {title: message.type}, message.sender),
+          m("p", [
+            m("a", {href: message.type}, message.type),
+            m(
+              "button.button.is-small.is-info.is-light",
+              {
+                onclick: () => {
+                  this.isModalOpen = true
+                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
+                }
+              },
+              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
+            ),
+          ]),
+        ])
+      ])
+  }
+
+  handleMessageView(message: Message) {
+    switch(message.type) {
+      case "https://didcomm.org/basicmessage/2.0/message":
+        return this.viewBasicMessage(message);
+      case "https://didcomm.org/user-profile/1.0/profile":
+        return this.viewProfileMessage(message);
+      case "https://didcomm.org/user-profile/1.0/request-profile":
+        return this.viewProfileRequestMessage(message);
+      default:
+        return this.viewUnknownMessage(message);
+    }
   }
 
   view(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
@@ -363,7 +488,7 @@ class MessageHistoryComponent
               },
             },
             m(
-              "div",
+              "div#message-box",
               {
                 style: {
                   display: "flex",
@@ -371,23 +496,63 @@ class MessageHistoryComponent
                   "max-height": "100%",
                   "overflow-y": "auto",
                 },
+                onscroll: (e: Event) => this.handleScroll(e),
               },
-              this.messages.map(message =>
-                m(
-                  ".box",
-                  m(
-                    ".media",
-                    m(".media-content", [
-                      m("p.title.is-5", message.sender),
-                      m("p.subtitle.is-6", message.timestamp.toDateString()),
-                      m("p", message.content),
-                    ])
-                  )
-                )
-              )
+              this.messages.map((messages) => this.handleMessageView(messages))
             )
           ),
-        ]
+        ],
+        // Unknown Message Dialog
+        this.isModalOpen &&
+          m(".modal.is-active", [
+            m(".modal-background", {
+              onclick: () => (this.isModalOpen = false),
+            }),
+            m(".modal-card", {
+              style: {
+                maxWidth: "calc(100vw - 40px)",
+                width: "100%",
+              }
+            },
+            [
+              m("header.modal-card-head", [
+                m("p.modal-card-title", "Raw DIDComm Message"),
+                m("button.delete", {
+                  "aria-label": "close",
+                  onclick: () => (this.isModalOpen = false),
+                }),
+              ]),
+              m("section.modal-card-body", [
+                m(".field", [
+                  m(
+                    "div.control",
+                    m(
+                      'textarea.textarea.is-normal[readonly]',
+                      {
+                        style: {
+                          width: "100%",
+                          height: "100%",
+                        }
+                      },
+                      this.rawMessageData
+                    )
+                  ),
+                ]),
+              ]),
+              m("footer.modal-card-foot", {
+                style: {
+                  flexDirection: "row-reverse"
+                }
+              },
+              [
+                m(
+                  "button.button",
+                  { onclick: () => (this.isModalOpen = false) },
+                  "Exit"
+                ),
+              ]),
+            ]),
+          ]),
       ),
       m("div", { style: "margin-top: 1rem;" }, [
         m("div.field.has-addons", [

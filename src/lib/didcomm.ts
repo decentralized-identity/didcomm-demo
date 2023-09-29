@@ -8,8 +8,10 @@ import DIDPeer from "./peer2"
 import {v4 as uuidv4} from "uuid"
 import logger from "./logger"
 
+export type DID = string
+
 function x25519ToSecret(
-  did: string,
+  did: DID,
   x25519KeyPriv: Uint8Array,
   x25519Key: Uint8Array
 ): Secret {
@@ -23,7 +25,7 @@ function x25519ToSecret(
 }
 
 function ed25519ToSecret(
-  did: string,
+  did: DID,
   ed25519KeyPriv: Uint8Array,
   ed25519Key: Uint8Array
 ): Secret {
@@ -53,7 +55,7 @@ export function generateDidForMediator() {
   return { did, secrets: [secretVer, secretEnc] }
 }
 
-export function generateDid(routingDid: string) {
+export function generateDid(routingDid: DID) {
   const key = ed25519.utils.randomPrivateKey()
   const enckeyPriv = edwardsToMontgomeryPriv(key)
   const verkey = ed25519.getPublicKey(key)
@@ -73,7 +75,7 @@ export function generateDid(routingDid: string) {
 }
 
 export class DIDPeerResolver implements DIDResolver {
-  async resolve(did: string): Promise<DIDDoc | null> {
+  async resolve(did: DID): Promise<DIDDoc | null> {
     const raw_doc = DIDPeer.resolve(did)
     return {
       id: raw_doc.id,
@@ -203,23 +205,23 @@ export class DIDComm {
     this.secretsResolver = new EphemeralSecretsResolver()
   }
 
-  async generateDidForMediator(): Promise<string> {
+  async generateDidForMediator(): Promise<DID> {
     const { did, secrets } = generateDidForMediator()
     secrets.forEach(secret => this.secretsResolver.store_secret(secret))
     return did
   }
 
-  async generateDid(routingDid: string): Promise<string> {
+  async generateDid(routingDid: DID): Promise<DID> {
     const { did, secrets } = generateDid(routingDid)
     secrets.forEach(secret => this.secretsResolver.store_secret(secret))
     return did
   }
 
-  async resolve(did: string): Promise<DIDDoc | null> {
+  async resolve(did: DID): Promise<DIDDoc | null> {
     return await this.resolver.resolve(did)
   }
 
-  async resolveDIDCommServices(did: string): Promise<any> {
+  async resolveDIDCommServices(did: DID): Promise<any> {
     const doc = await this.resolve(did)
     if (!doc) {
       throw new Error("Unable to resolve DID")
@@ -237,9 +239,9 @@ export class DIDComm {
   /**
    * Obtain the first websocket endpoint for a given DID.
    *
-   * @param {string} did The DID to obtain the websocket endpoint for
+   * @param {DID} did The DID to obtain the websocket endpoint for
    */
-  async wsEndpoint(did: string): Promise<MessagingServiceMetadata> {
+  async wsEndpoint(did: DID): Promise<MessagingServiceMetadata> {
     const services = await this.resolveDIDCommServices(did)
     
     const service = services
@@ -253,9 +255,9 @@ export class DIDComm {
   /**
    * Obtain the first http endpoint for a given DID.
    *
-   * @param {string} did The DID to obtain the websocket endpoint for
+   * @param {DID} did The DID to obtain the websocket endpoint for
    */
-  async httpEndpoint(did: string): Promise<MessagingServiceMetadata> {
+  async httpEndpoint(did: DID): Promise<MessagingServiceMetadata> {
     const services = await this.resolveDIDCommServices(did)
     const service = services
       .filter((s: any) => s.serviceEndpoint.uri.startsWith("http"))[0]
@@ -265,7 +267,7 @@ export class DIDComm {
     }
   }
 
-  async prepareMessage(to: string, from: string, message: DIDCommMessage): Promise<[IMessage, string, PackEncryptedMetadata]> {
+  async prepareMessage(to: DID, from: DID, message: DIDCommMessage): Promise<[IMessage, string, PackEncryptedMetadata]> {
     const msg = new Message({
       id: uuidv4(),
       typ: "application/didcomm-plain+json",
@@ -290,7 +292,7 @@ export class DIDComm {
     )
   }
 
-  async sendMessageAndExpectReply(to: string, from: string, message: DIDCommMessage): Promise<[Message, UnpackMetadata]> {
+  async sendMessageAndExpectReply(to: DID, from: DID, message: DIDCommMessage): Promise<[Message, UnpackMetadata]> {
     const [plaintext, packed, meta]= await this.prepareMessage(to, from, message)
     logger.sentMessage({to, from, message: plaintext})
     if (!meta.messaging_service) {
@@ -322,7 +324,7 @@ export class DIDComm {
     }
   }
 
-  async sendMessage(to: string, from: string, message: DIDCommMessage) {
+  async sendMessage(to: DID, from: DID, message: DIDCommMessage) {
     const [plaintext, packed, meta]= await this.prepareMessage(to, from, message)
     logger.sentMessage({to, from, message: plaintext})
     if (!meta.messaging_service) {
