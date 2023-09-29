@@ -82,8 +82,8 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
       this.editMode ? m("input.title", {
         value: this.editedProfileName,
         oninput: (e: Event) => this.editedProfileName = (e.target as HTMLInputElement).value,
-        onblur: () => {
-          onProfileNameChange(this.editedProfileName)
+        onblur: async () => {
+          await onProfileNameChange(this.editedProfileName)
           this.editMode = false
         },
         style: {
@@ -97,10 +97,10 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
           input.focus()
           input.setSelectionRange(this.editedProfileName.length, this.editedProfileName.length)
         },
-        onkeydown: (e: KeyboardEvent) => {
+        onkeydown: async (e: KeyboardEvent) => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            onProfileNameChange(this.editedProfileName)
+            await onProfileNameChange(this.editedProfileName)
             this.editMode = false
           }
         },

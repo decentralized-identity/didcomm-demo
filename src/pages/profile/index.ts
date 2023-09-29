@@ -1,8 +1,10 @@
 import * as m from "mithril"
 import Navbar from "./navbar"
+import { default as ContactService, Contact } from "../../lib/contacts"
 import ConsoleComponent from "./console"
 import JSONEditor from "./jsoneditor"
 import MessagingComponent from "./messaging"
+import { IMessage } from "didcomm"
 import {Profile, generateProfile} from "../../lib/profile"
 import agent from "../../lib/agent"
 
@@ -29,6 +31,32 @@ export default class ProfilePage
     m.redraw()
   }
 
+  async sendMessage(contact: Contact, message: IMessage) {
+    const internalMessage = {
+      sender: agent.profile.label,
+      receiver: contact.label || contact.did,
+      timestamp: new Date(),
+      type: message.type,
+      content: "",
+      raw: message,
+    }
+    await agent.sendMessage(contact, message)
+    internalMessage.raw.from = agent.profile.did
+    ContactService.addMessage(contact.did, internalMessage)
+  }
+
+  async sendProfile(contact: Contact) {
+    const message = {
+      type: "https://didcomm.org/user-profile/1.0/profile",
+      body: {
+        profile: {
+          displayName: agent.profile.label,
+        }
+      }
+    }
+    await this.sendMessage(contact, message as IMessage)
+  }
+
   view(vnode: m.Vnode<ProfileAttributes>) {
     return m(".container.is-fluid", [
       // Top Bar
@@ -37,9 +65,13 @@ export default class ProfilePage
         isConnected: this.connected,
         did: agent.profile.did,
         toggleConnection: () => (this.connected = !this.connected),
-        onProfileNameChange: (newName: string) => {
+        onProfileNameChange: async (newName: string) => {
           agent.profile.label = newName
           m.route.set('/:actor', {actor: agent.profile.label})
+          let contacts = ContactService.getContacts()
+          for(let contact of contacts) {
+            await this.sendProfile(contact)
+          }
           m.redraw()
         },
       }),
