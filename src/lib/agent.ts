@@ -5,7 +5,7 @@ import { default as ContactService, Contact, Message } from "./contacts"
 import { WorkerCommand, WorkerMessage } from "./workerTypes"
 import eventbus from "./eventbus"
 import { IMessage } from "didcomm"
-import { DIDCommMessage } from "./didcomm"
+import { DIDCommMessage, DID } from "./didcomm"
 
 export interface AgentMessage {
   sender: Contact
@@ -105,9 +105,7 @@ export class Agent {
     switch(message.type) {
       case "https://didcomm.org/trust-ping/2.0/ping":
         if(message.body?.response_requested !== false) {
-          this.sendMessage({
-              did: message.from
-            }, {
+          this.sendMessage(message.from, {
             "type": "https://didcomm.org/trust-ping/2.0/ping-response",
             "thid": message.id,
           })
@@ -115,9 +113,7 @@ export class Agent {
         break;
       case "https://didcomm.org/discover-features/2.0/queries":
         const discloseMessage = this.handleDiscoverFeatures(message)
-        this.sendMessage({
-              did: message.from
-            }, discloseMessage)
+        this.sendMessage(message.from, discloseMessage)
         break;
     }
   }
@@ -162,18 +158,19 @@ export class Agent {
     eventbus.on("messageReceived", callback);
   }
 
-  public async sendMessage(to: Contact, message: DIDCommMessage) {
+  public async sendMessage(to: Contact | DID, message: DIDCommMessage) {
+    const contact: Contact = typeof to == "string" ? ContactService.getContact(to) : to
     const internalMessage = {
       sender: this.profile.label,
-      receiver: to.label || to.did,
+      receiver: contact.label || contact.did,
       timestamp: new Date(),
       type: message.type,
       content: message.body?.content ?? "",
       raw: message,
     }
-    this.postMessage({type: "sendMessage", payload: {to: to.did, message}})
+    this.postMessage({type: "sendMessage", payload: {to: contact.did, message}})
     internalMessage.raw.from = this.profile.did
-    ContactService.addMessage(to.did, internalMessage)
+    ContactService.addMessage(contact.did, internalMessage)
   }
 
   public async refreshMessages() {
