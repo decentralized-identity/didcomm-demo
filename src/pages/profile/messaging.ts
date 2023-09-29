@@ -21,7 +21,7 @@ class ContactListComponent
 
   oninit() {
     this.contacts = ContactService.getContacts()
-    agent.onMessage("https://didcomm.org/basicmessage/2.0/message", this.onMessageReceived.bind(this))
+    agent.onMessage("messageReceived", this.onMessageReceived.bind(this))
     agent.onMessage("https://didcomm.org/user-profile/1.0/profile", this.onProfileUpdate.bind(this))
     agent.onMessage("https://didcomm.org/user-profile/1.0/request-profile", this.onProfileRequest.bind(this))
   }
@@ -43,7 +43,10 @@ class ContactListComponent
     let contact = ContactService.getContact(message.message.from);
     if(!contact)
       return;
+    await this.sendProfile(contact)
+  }
 
+  async sendProfile(contact: Contact) {
     await agent.sendMessage(contact, {
       type: "https://didcomm.org/user-profile/1.0/profile",
       body: {
@@ -54,26 +57,38 @@ class ContactListComponent
     })
   }
 
+  async requestProfile(contact: Contact) {
+    await agent.sendMessage(contact, {
+      type: "https://didcomm.org/user-profile/1.0/request-profile",
+      body: {
+        query: ["displayName"],
+      }
+    })
+  }
+
   async onMessageReceived(message: AgentMessage) {
+    if(message.message.to[0]!=agent.profile.did)
+      return;
     if (!ContactService.getContact(message.message.from)) {
       let newContact = {did: message.message.from};
       ContactService.addContact(newContact as Contact);
-      await agent.sendMessage(newContact, {
-        type: "https://didcomm.org/user-profile/1.0/request-profile",
-        body: {
-          query: ["displayName"],
-        }
-      })
+      if(message.message.type != "https://didcomm.org/user-profile/1.0/profile") {
+        await this.requestProfile(newContact)
+      }
       this.contacts = ContactService.getContacts()
       m.redraw()
     }
   }
 
-  onAddContact() {
+  async onAddContact() {
     if (this.newContact.did) {
       ContactService.addContact(this.newContact as Contact)
       this.contacts = ContactService.getContacts()
       this.isModalOpen = false
+      this.sendProfile(this.newContact as Contact)
+      if(!this.newContact.label)
+        await this.requestProfile(this.newContact as Contact)
+      //this.requestFeatures(this.newContact)
     }
   }
 
@@ -161,7 +176,7 @@ class ContactListComponent
               m("footer.modal-card-foot", [
                 m(
                   "button.button.is-success",
-                  { onclick: () => this.onAddContact() },
+                  { onclick: async () => await this.onAddContact() },
                   "Save"
                 ),
                 m(
