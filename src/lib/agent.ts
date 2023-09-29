@@ -128,7 +128,7 @@ export class Agent {
 
     // Handle core protocols first, but only if they are destined for us. Don't
     // handle them if they were sent by us.
-    if(to.did == this.profile.did)
+    if(this.profile && to?.did == this.profile?.did)
       this.handleCoreProtocolMessage(message)
 
     eventbus.emit("messageReceived", {sender: from, receiver: to, message})
