@@ -282,6 +282,58 @@ class MessageHistoryComponent
     )
   }
 
+  viewProfileMessage(message: Message) {
+    return m(
+      ".message.is-info",
+      [
+        m(".message-header", [
+          m("p", "Profile Data"),
+        ]),
+        m(".message-body", [
+          m("p.subtitle.is-6", message.timestamp.toDateString()),
+          m("p", [
+            m("p", message.raw.body?.profile?.displayName),
+            m(
+              "button.button.is-small.is-info.is-light",
+              {
+                onclick: () => {
+                  this.isModalOpen = true
+                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
+                }
+              },
+              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
+            ),
+          ]),
+        ])
+      ])
+  }
+
+  viewProfileRequestMessage(message: Message) {
+    return m(
+      ".message.is-info",
+      [
+        m(".message-header", [
+          m("p", "Profile Request"),
+        ]),
+        m(".message-body", [
+          m("p.subtitle.is-6", message.timestamp.toDateString()),
+          m("p", [
+            m("p", message.raw.body?.profile?.displayName),
+            m(
+              "button.button.is-small.is-info.is-light",
+              {
+                onclick: () => {
+                  this.isModalOpen = true
+                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
+                }
+              },
+              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
+            ),
+          ]),
+        ])
+      ])
+  }
+
   viewUnknownMessage(message: Message) {
     return m(
       ".message.is-danger",
@@ -312,7 +364,11 @@ class MessageHistoryComponent
   handleMessageView(message: Message) {
     switch(message.type) {
       case "https://didcomm.org/basicmessage/2.0/message":
-      return this.viewBasicMessage(message);
+        return this.viewBasicMessage(message);
+      case "https://didcomm.org/user-profile/1.0/profile":
+        return this.viewProfileMessage(message);
+      case "https://didcomm.org/user-profile/1.0/request-profile":
+        return this.viewProfileRequestMessage(message);
       default:
         return this.viewUnknownMessage(message);
     }
