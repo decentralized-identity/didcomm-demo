@@ -70,21 +70,21 @@ export class Agent {
   }
 
   private handleDiscoverFeatures(message: IMessage) {
-    const regexEscape = (s) => s.replace(/([.*+?$^=!:{}()|\[\]\/\\])/g, "\\$1");
-    const createRegex = (query) => (new RegExp(`^${query.split("*").map(regexEscape).join(".*")}$`}))
-    let protocolResponse = [];
+    const regexEscape = (s: string) => s.replace(/([.*+?$^=!:{}()|\[\]\/\\])/g, "\\$1");
+    const createRegex = (query: string) => (new RegExp(`^${query.split("*").map(regexEscape).join(".*")}$`));
+    let protocolResponse: object[] = [];
 
     // Loop through all queries, then all implemented protocols and build up a
     // list of supported protocols that match the user's request
-    for(let query in message.body.queries) {
+    for(let query of message.body.queries) {
 
       // Rudimentary implementation, ignoring all except protocol requests
       if(query["feature-type"] != "protocol")
         continue
 
-      for(let protocol in IMPLEMENTED_PROTOCOLS) {
+      for(let protocol of IMPLEMENTED_PROTOCOLS) {
         if(createRegex(query).test(protocol)) {
-          protocolResponse.append({
+          protocolResponse.push({
             "feature-type": "protocol",
             "id": protocol,
           })
@@ -92,7 +92,7 @@ export class Agent {
       }
     }
     const response = {
-      "id": "https://didcomm.org/discover-features/2.0/disclose",
+      "type": "https://didcomm.org/discover-features/2.0/disclose",
       "thid": message.id,
       "body": {
         "disclosures": protocolResponse
@@ -105,7 +105,9 @@ export class Agent {
     switch(message.type) {
       case "https://didcomm.org/trust-ping/2.0/ping":
         if(message.body?.response_requested !== false) {
-          this.sendMessage(message.from, {
+          this.sendMessage({
+              did: message.from
+            }, {
             "type": "https://didcomm.org/trust-ping/2.0/ping-response",
             "thid": message.id,
           })
@@ -113,7 +115,9 @@ export class Agent {
         break;
       case "https://didcomm.org/discover-features/2.0/queries":
         const discloseMessage = this.handleDiscoverFeatures(message)
-        this.sendMessage(message.from, discloseMessage)
+        this.sendMessage({
+              did: message.from
+            }, discloseMessage)
         break;
     }
   }
