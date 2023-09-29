@@ -308,6 +308,15 @@ class MessageHistoryComponent
     ContactService.addContact(this.contact as Contact);
   }
 
+  viewMessageBoxHeader(header: string, message: Message) {
+    const isSelf = message.raw?.from == agent.profile.did
+    const icon = isSelf ? "right-from-bracket" : "right-to-bracket"
+    return m("div", {style: {width: "100%"}}, [
+      m("span.icon", {style: {float: "right"}}, m(`i.fas.fa-${icon}`)),
+      m("p", `${header} - ${message.timestamp.toDateString()}`),
+    ])
+  }
+
   viewBasicMessage(message: Message) {
     return m(
       ".box",
@@ -328,7 +337,7 @@ class MessageHistoryComponent
       `.message.is-small.is-${isSelf ? "link" : "info"}`,
       [
         m(".message-header", [
-          m("p", `Profile Data - ${message.timestamp.toDateString()}`),
+          this.viewMessageBoxHeader("Profile Data", message),
         ]),
         m(".message-body", [
           m("p", [
@@ -354,7 +363,7 @@ class MessageHistoryComponent
       `.message.is-small.is-${isSelf ? "link" : "info"}`,
       [
         m(".message-header", [
-          m("p", `Profile Request - ${message.timestamp.toDateString()}`),
+          this.viewMessageBoxHeader("Profile Request", message),
         ]),
         m(".message-body", [
           m("p", [
@@ -379,11 +388,10 @@ class MessageHistoryComponent
       ".message.is-danger",
       [
         m(".message-header", [
-          m("p", "Unknown Message Type"),
+          this.viewMessageBoxHeader("Unknown Message Type", message),
         ]),
         m(".message-body", [
           m("p.title.is-5", {title: message.type}, message.sender),
-          m("p.subtitle.is-6", message.timestamp.toDateString()),
           m("p", [
             m("a", {href: message.type}, message.type),
             m(
