@@ -82,7 +82,7 @@ export class Agent {
       if(query["feature-type"] != "protocol")
         continue
 
-      for(let protocol of IMPLEMENTED_MESSAGE_TYPES) {
+      for(let protocol of IMPLEMENTED_PROTOCOLS) {
         if(createRegex(query["match"]).test(protocol)) {
           protocolResponse.push({
             "feature-type": "protocol",
