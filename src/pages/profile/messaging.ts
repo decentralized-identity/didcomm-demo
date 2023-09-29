@@ -82,6 +82,19 @@ class ContactListComponent
     await this.sendMessage(contact, message as IMessage)
   }
 
+  async sendFeatureDiscovery(contact: Contact) {
+    const message = {
+      type: "https://didcomm.org/discover-features/2.0/queries",
+      body: {
+        queries: [{
+          "feature-type": "protocol",
+          "match": "https://didcomm.org/*",
+        }]
+      }
+    }
+    await this.sendMessage(contact, message as IMessage)
+  }
+
   async onMessageReceived(message: AgentMessage) {
     if(message.message.to[0]!=agent.profile.did)
       return;
@@ -102,8 +115,11 @@ class ContactListComponent
       this.contacts = ContactService.getContacts()
       this.isModalOpen = false
       this.sendProfile(this.newContact as Contact)
-      if(!this.newContact.label)
-        await this.requestProfile(this.newContact as Contact)
+      setTimeout(async () => {
+        if(!this.newContact.label)
+          await this.requestProfile(this.newContact as Contact)
+        this.sendFeatureDiscovery(this.newContact as Contact)
+      }, 500);
       //this.requestFeatures(this.newContact)
     }
   }
