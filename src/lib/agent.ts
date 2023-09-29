@@ -13,7 +13,7 @@ export interface AgentMessage {
   message: IMessage
 }
 
-const IMPLEMENTED_PROTOCOLS = [
+const IMPLEMENTED_MESSAGE_TYPES = [
   "https://didcomm.org/discover-features/2.0/queries",
   "https://didcomm.org/trust-ping/2.0/ping",
   "https://didcomm.org/basicmessage/2.0/message",
@@ -82,7 +82,7 @@ export class Agent {
       if(query["feature-type"] != "protocol")
         continue
 
-      for(let protocol of IMPLEMENTED_PROTOCOLS) {
+      for(let protocol of IMPLEMENTED_MESSAGE_TYPES) {
         if(createRegex(query["match"]).test(protocol)) {
           protocolResponse.push({
             "feature-type": "protocol",
