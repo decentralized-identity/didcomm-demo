@@ -122,11 +122,6 @@ export class Agent {
     const from = message.from == this.profile.did ? this.profile as Contact : ContactService.getContact(message.from)
     const to = message.to[0] == this.profile.did ? this.profile as Contact : ContactService.getContact(message.to[0])
 
-    // Handle core protocols first, but only if they are destined for us. Don't
-    // handle them if they were sent by us.
-    if(this.profile && to?.did == this.profile?.did)
-      this.handleCoreProtocolMessage(message)
-
     eventbus.emit("messageReceived", {sender: from, receiver: to, message})
     eventbus.emit(message.type, {sender: from, receiver: to, message})
     if(ContactService.getContact(message.from)) {
