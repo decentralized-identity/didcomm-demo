@@ -46,24 +46,40 @@ class ContactListComponent
     await this.sendProfile(contact)
   }
 
+  async sendMessage(contact: Contact, message: IMessage) {
+    const internalMessage = {
+      sender: agent.profile.label,
+      receiver: contact.label || contact.did,
+      timestamp: new Date(),
+      type: message.type,
+      content: "",
+      raw: message,
+    }
+    await agent.sendMessage(contact, message)
+    internalMessage.raw.from = agent.profile.did
+    ContactService.addMessage(contact.did, internalMessage)
+  }
+
   async sendProfile(contact: Contact) {
-    await agent.sendMessage(contact, {
+    const message = {
       type: "https://didcomm.org/user-profile/1.0/profile",
       body: {
         profile: {
           displayName: agent.profile.label,
         }
       }
-    })
+    }
+    await this.sendMessage(contact, message as IMessage)
   }
 
   async requestProfile(contact: Contact) {
-    await agent.sendMessage(contact, {
+    const message = {
       type: "https://didcomm.org/user-profile/1.0/request-profile",
       body: {
         query: ["displayName"],
       }
-    })
+    }
+    await this.sendMessage(contact, message as IMessage)
   }
 
   async onMessageReceived(message: AgentMessage) {
@@ -307,16 +323,16 @@ class MessageHistoryComponent
   }
 
   viewProfileMessage(message: Message) {
+    const isSelf = message.raw?.from == agent.profile.did
     return m(
-      ".message.is-info",
+      `.message.is-small.is-${isSelf ? "link" : "info"}`,
       [
         m(".message-header", [
-          m("p", "Profile Data"),
+          m("p", `Profile Data - ${message.timestamp.toDateString()}`),
         ]),
         m(".message-body", [
-          m("p.subtitle.is-6", message.timestamp.toDateString()),
           m("p", [
-            m("p", message.raw.body?.profile?.displayName),
+            m("p", `New Display Name: ${message.raw.body?.profile?.displayName}`),
             m(
               "button.button.is-small.is-info.is-light",
               {
@@ -333,14 +349,14 @@ class MessageHistoryComponent
   }
 
   viewProfileRequestMessage(message: Message) {
+    const isSelf = message.raw?.from == agent.profile.did
     return m(
-      ".message.is-info",
+      `.message.is-small.is-${isSelf ? "link" : "info"}`,
       [
         m(".message-header", [
-          m("p", "Profile Request"),
+          m("p", `Profile Request - ${message.timestamp.toDateString()}`),
         ]),
         m(".message-body", [
-          m("p.subtitle.is-6", message.timestamp.toDateString()),
           m("p", [
             m("p", message.raw.body?.profile?.displayName),
             m(
