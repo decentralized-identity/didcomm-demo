@@ -43,56 +43,7 @@ class ContactListComponent
     let contact = ContactService.getContact(message.message.from);
     if(!contact)
       return;
-    await this.sendProfile(contact)
-  }
-
-  async sendMessage(contact: Contact, message: IMessage) {
-    const internalMessage = {
-      sender: agent.profile.label,
-      receiver: contact.label || contact.did,
-      timestamp: new Date(),
-      type: message.type,
-      content: "",
-      raw: message,
-    }
-    await agent.sendMessage(contact, message)
-    internalMessage.raw.from = agent.profile.did
-    ContactService.addMessage(contact.did, internalMessage)
-  }
-
-  async sendProfile(contact: Contact) {
-    const message = {
-      type: "https://didcomm.org/user-profile/1.0/profile",
-      body: {
-        profile: {
-          displayName: agent.profile.label,
-        }
-      }
-    }
-    await this.sendMessage(contact, message as IMessage)
-  }
-
-  async requestProfile(contact: Contact) {
-    const message = {
-      type: "https://didcomm.org/user-profile/1.0/request-profile",
-      body: {
-        query: ["displayName"],
-      }
-    }
-    await this.sendMessage(contact, message as IMessage)
-  }
-
-  async sendFeatureDiscovery(contact: Contact) {
-    const message = {
-      type: "https://didcomm.org/discover-features/2.0/queries",
-      body: {
-        queries: [{
-          "feature-type": "protocol",
-          "match": "https://didcomm.org/*",
-        }]
-      }
-    }
-    await this.sendMessage(contact, message as IMessage)
+    await agent.sendProfile(contact)
   }
 
   async onMessageReceived(message: AgentMessage) {
@@ -102,7 +53,7 @@ class ContactListComponent
       let newContact = {did: message.message.from};
       ContactService.addContact(newContact as Contact);
       if(message.message.type != "https://didcomm.org/user-profile/1.0/profile") {
-        await this.requestProfile(newContact)
+        await agent.requestProfile(newContact)
       }
       this.contacts = ContactService.getContacts()
       m.redraw()
@@ -114,11 +65,11 @@ class ContactListComponent
       ContactService.addContact(this.newContact as Contact)
       this.contacts = ContactService.getContacts()
       this.isModalOpen = false
-      this.sendProfile(this.newContact as Contact)
+      agent.sendProfile(this.newContact as Contact)
       setTimeout(async () => {
         if(!this.newContact.label)
-          await this.requestProfile(this.newContact as Contact)
-        this.sendFeatureDiscovery(this.newContact as Contact)
+          await agent.requestProfile(this.newContact as Contact)
+        agent.sendFeatureDiscovery(this.newContact as Contact)
       }, 500);
       //this.requestFeatures(this.newContact)
     }
@@ -303,14 +254,6 @@ class MessageHistoryComponent
       }
     };
     await agent.sendMessage(this.contact, message)
-    const internalMessage = {
-      sender: agent.profile.label,
-      receiver: this.contact.label || this.contact.did,
-      timestamp: new Date(),
-      content: content,
-      type: message.type,
-    }
-    ContactService.addMessage(this.contact.did, internalMessage)
     m.redraw()
   }
 

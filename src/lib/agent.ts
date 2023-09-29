@@ -163,11 +163,56 @@ export class Agent {
   }
 
   public async sendMessage(to: Contact, message: DIDCommMessage) {
+    const internalMessage = {
+      sender: this.profile.label,
+      receiver: to.label || to.did,
+      timestamp: new Date(),
+      type: message.type,
+      content: message.body?.content ?? "",
+      raw: message,
+    }
     this.postMessage({type: "sendMessage", payload: {to: to.did, message}})
+    internalMessage.raw.from = this.profile.did
+    ContactService.addMessage(to.did, internalMessage)
   }
 
   public async refreshMessages() {
     this.postMessage({type: "pickupStatus", payload: {mediatorDid: DEFAULT_MEDIATOR}})
+  }
+
+  public async sendProfile(contact: Contact) {
+    const message = {
+      type: "https://didcomm.org/user-profile/1.0/profile",
+      body: {
+        profile: {
+          displayName: this.profile.label,
+        }
+      }
+    }
+    await this.sendMessage(contact, message as IMessage)
+  }
+
+  public async requestProfile(contact: Contact) {
+    const message = {
+      type: "https://didcomm.org/user-profile/1.0/request-profile",
+      body: {
+        query: ["displayName"],
+      }
+    }
+    await this.sendMessage(contact, message as IMessage)
+  }
+
+  public async sendFeatureDiscovery(contact: Contact) {
+    const message = {
+      type: "https://didcomm.org/discover-features/2.0/queries",
+      body: {
+        queries: [{
+          "feature-type": "protocol",
+          "match": "https://didcomm.org/*",
+        }]
+      }
+    }
+    await this.sendMessage(contact, message as IMessage)
   }
 }
 

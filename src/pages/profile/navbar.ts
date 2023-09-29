@@ -100,7 +100,8 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
         onkeydown: async (e: KeyboardEvent) => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            await onProfileNameChange(this.editedProfileName)
+            // Onblur covers this, so we don't need to send another message
+            //await onProfileNameChange(this.editedProfileName)
             this.editMode = false
           }
         },

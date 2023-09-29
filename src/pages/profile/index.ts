@@ -45,18 +45,6 @@ export default class ProfilePage
     ContactService.addMessage(contact.did, internalMessage)
   }
 
-  async sendProfile(contact: Contact) {
-    const message = {
-      type: "https://didcomm.org/user-profile/1.0/profile",
-      body: {
-        profile: {
-          displayName: agent.profile.label,
-        }
-      }
-    }
-    await this.sendMessage(contact, message as IMessage)
-  }
-
   view(vnode: m.Vnode<ProfileAttributes>) {
     return m(".container.is-fluid", [
       // Top Bar
@@ -70,7 +58,7 @@ export default class ProfilePage
           m.route.set('/:actor', {actor: agent.profile.label})
           let contacts = ContactService.getContacts()
           for(let contact of contacts) {
-            await this.sendProfile(contact)
+            await agent.sendProfile(contact)
           }
           m.redraw()
         },
