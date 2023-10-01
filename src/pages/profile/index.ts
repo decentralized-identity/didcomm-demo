@@ -17,7 +17,7 @@ interface ProfileAttributes {
 export default class ProfilePage
   implements m.ClassComponent<ProfileAttributes>
 {
-  connected: boolean = true // initial state for the connection button
+  connected: boolean = false // initial state for the connection button
   profile: Profile
   worker: Worker
 
@@ -26,6 +26,14 @@ export default class ProfilePage
     m.route.set('/:actor', {actor: profile.label})
     agent.setupProfile(profile)
     agent.ondid = this.onDidGenerated.bind(this)
+    agent.onconnect = () => {
+      this.connected = true
+      m.redraw()
+    }
+    agent.ondisconnect = () => {
+      this.connected = false
+      m.redraw()
+    }
   }
 
   onDidGenerated(did: string) {
@@ -47,6 +55,14 @@ export default class ProfilePage
     ContactService.addMessage(contact.did, internalMessage)
   }
 
+  async toggleConnection() {
+    if (this.connected) {
+      await agent.disconnect()
+    } else {
+      await agent.connect()
+    }
+  }
+
   view(vnode: m.Vnode<ProfileAttributes>) {
     return m(".container.is-fluid", [
       // Top Bar
@@ -54,7 +70,7 @@ export default class ProfilePage
         profileName: agent.profile.label,
         isConnected: this.connected,
         did: agent.profile.did,
-        toggleConnection: () => (this.connected = !this.connected),
+        toggleConnection: this.toggleConnection.bind(this),
         onProfileNameChange: async (newName: string) => {
           agent.profile.label = newName
           m.route.set('/:actor', {actor: agent.profile.label})

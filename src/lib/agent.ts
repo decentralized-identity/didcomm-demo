@@ -27,6 +27,7 @@ export class Agent {
   constructor() {
     this.worker = new Worker(new URL("./worker.ts", import.meta.url))
     this.worker.onmessage = this.handleWorkerMessage.bind(this)
+    this.onmessage = this.handleCoreProtocolMessage.bind(this)
   }
 
   setupProfile(profile: Profile) {
@@ -39,6 +40,7 @@ export class Agent {
   }
 
   private handleWorkerMessage(e: MessageEvent<WorkerMessage<any>>) {
+    console.log("Agent received message: ", e.data.type)
     switch (e.data.type) {
       case "log":
         logger.log(e.data.payload.message)
@@ -52,6 +54,13 @@ export class Agent {
       case "messageReceived":
         this.onMessageReceived(e.data.payload)
         break
+      case "connected":
+        eventbus.emit("connected")
+        break
+      case "disconnected":
+        eventbus.emit("disconnected")
+        break
+      case "error":
       default:
         logger.log("Unhandled message: ", e.data.type)
         console.log("Unhandled message: ", e.data)
@@ -205,6 +214,22 @@ export class Agent {
       }
     }
     await this.sendMessage(contact, message as IMessage)
+  }
+
+  public async connect() {
+    this.worker.postMessage({type: "connect", payload: {mediatorDid: DEFAULT_MEDIATOR}})
+  }
+
+  set onconnect(callback: () => void) {
+    eventbus.on("connected", callback)
+  }
+
+  public async disconnect() {
+    this.worker.postMessage({type: "disconnect"})
+  }
+
+  set ondisconnect(callback: () => void) {
+    eventbus.on("disconnected", callback)
   }
 }
 

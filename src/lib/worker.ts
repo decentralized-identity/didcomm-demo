@@ -189,7 +189,6 @@ class DIDCommWorker {
 
   async disconnect() {
     this.ws.close()
-    this.postMessage({type: "disconnected", payload: {}})
   }
 
   async sendMessage({to, message}: {to: string, message: DIDCommMessage}) {
@@ -202,6 +201,7 @@ class DIDCommWorker {
 
   async route(event: MessageEvent<WorkerCommand<any>>) {
     const {type, payload} = event.data
+    console.log("Worker received message: ", type)
     const method = this[type]
 
     if (typeof method === 'function') {
@@ -219,7 +219,6 @@ class DIDCommWorker {
 const handler = new DIDCommWorker()
 console.log("Created worker: ", handler)
 ctx.onmessage = async (event: MessageEvent) => {
-  console.log("Worker received message: ", event)
   await handler.route(event)
 }
 handler.init()

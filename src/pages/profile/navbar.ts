@@ -135,7 +135,7 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
               this.refreshMessages()
             },
             style: {marginRight: ".5em"},
-            title: "Refresh messages"
+            title: "Retrieve messages"
           }, [
             m("span.icon", [m("i.fas.fa-refresh")])
           ]),
@@ -151,7 +151,7 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
                   ? "fa-solid fa-circle"
                   : "fa-regular fa-circle",
               }), // circle icons
-              m("span", isConnected ? "Connected" : "Disconnected"),
+              m("span", isConnected ? "WS Connected" : "WS Disconnected"),
             ]
           ),
         ]),
