@@ -1,9 +1,7 @@
 // ContactListComponent.ts
 import * as m from "mithril"
 import { default as ContactService, Contact, Message } from "../../lib/contacts"
-import eventbus from "../../lib/eventbus"
-import profile from "../../lib/profile"
-import { IMessage } from "didcomm"
+import MessageCard from "./message"
 import agent, { AgentMessage } from "../../lib/agent"
 
 import "./messaging.css"
@@ -273,123 +271,53 @@ class MessageHistoryComponent
     ContactService.addContact(this.contact as Contact);
   }
 
-  viewMessageBoxHeader(header: string, message: Message) {
-    const isSelf = message.raw?.from == agent.profile.did
-    const icon = isSelf ? "right-from-bracket" : "right-to-bracket"
-    return m("div", {
-      style: {
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-      }
-    }, [
-      m("span", {style: {flexGrow: 1}}, `${header} - ${message.timestamp.toDateString()}`),
-      m("span.icon", m(`i.fas.fa-${icon}`)),
-    ])
-  }
-
-  viewBasicMessage(message: Message) {
-    return m(
-      ".box",
-      m(
-        ".media",
-        m(".media-content", [
-          m("p.title.is-5", {title: message.type}, message.sender),
-          m("p.subtitle.is-6", message.timestamp.toDateString()),
-          m("p", message.content),
-        ])
-      )
-    )
-  }
-
-  viewProfileMessage(message: Message) {
-    const isSelf = message.raw?.from == agent.profile.did
-    return m(
-      `.message.is-small.is-${isSelf ? "link" : "info"}`,
-      [
-        m(".message-header", [
-          this.viewMessageBoxHeader("Profile Data", message),
-        ]),
-        m(".message-body", [
-          m("p", [
-            m("p", `New Display Name: ${message.raw.body?.profile?.displayName}`),
-            m(
-              "button.button.is-small.is-info.is-light",
-              {
-                onclick: () => {
-                  this.isModalOpen = true
-                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
-                }
-              },
-              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
-            ),
-          ]),
-        ])
-      ])
-  }
-
-  viewProfileRequestMessage(message: Message) {
-    const isSelf = message.raw?.from == agent.profile.did
-    return m(
-      `.message.is-small.is-${isSelf ? "link" : "info"}`,
-      [
-        m(".message-header", [
-          this.viewMessageBoxHeader("Profile Request", message),
-        ]),
-        m(".message-body", [
-          m("p", [
-            m("p", message.raw.body?.profile?.displayName),
-            m(
-              "button.button.is-small.is-info.is-light",
-              {
-                onclick: () => {
-                  this.isModalOpen = true
-                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
-                }
-              },
-              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
-            ),
-          ]),
-        ])
-      ])
-  }
-
-  viewUnknownMessage(message: Message) {
-    return m(
-      ".message.is-danger.is-small",
-      [
-        m(".message-header", [
-          this.viewMessageBoxHeader("Unknown Message Type", message),
-        ]),
-        m(".message-body", [
-          m("p.title.is-5", {title: message.type}, message.sender),
-          m("p", [
-            m("a", {href: message.type}, message.type),
-            m(
-              "button.button.is-small.is-info.is-light",
-              {
-                onclick: () => {
-                  this.isModalOpen = true
-                  this.rawMessageData = JSON.stringify(message.raw, null, 2)
-                }
-              },
-              [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
-            ),
-          ]),
-        ])
-      ])
-  }
-
-  handleMessageView(message: Message) {
+  viewMessage(message: Message) {
     switch(message.type) {
       case "https://didcomm.org/basicmessage/2.0/message":
-        return this.viewBasicMessage(message);
+        return m(
+          MessageCard,
+          {
+            header: message.sender,
+            message,
+          },
+          [
+            m("p", message.content),
+          ]
+        )
       case "https://didcomm.org/user-profile/1.0/profile":
-        return this.viewProfileMessage(message);
+        return m(
+          MessageCard, {header: "Profile Data", message, class: "info", inspectable: true}, [
+            m("p", `New Display Name: ${message.raw.body?.profile?.displayName}`),
+          ]
+        )
       case "https://didcomm.org/user-profile/1.0/request-profile":
-        return this.viewProfileRequestMessage(message);
+        return m(
+          MessageCard, {header: "Profile Request", message, class: "info", inspectable: true}, [
+            m("p", `Requested attributes: ${message.raw.body?.query?.join(", ")}`),
+          ]
+        )
+      case "https://didcomm.org/discover-features/2.0/queries":
+        return m(
+          MessageCard, {header: "Feature Query", message, class: "info", inspectable: true},
+          message.raw.body.queries.map((query: any) => 
+            m("p", `Requesting features of type "${query["feature-type"]}" matching "${query.match}"`)
+          )
+        )
+      case "https://didcomm.org/discover-features/2.0/disclose":
+        return m(
+          MessageCard, {header: "Feature Disclosure", message, class: "info", inspectable: true},
+          m("ul.disclose-list",
+            message.raw.body.disclosures.map((disclosure: any) => 
+              m("li", m("span", [`${disclosure["feature-type"]}: `, m("a", {href: disclosure.id}, disclosure.id)]))
+            )
+          )
+        )
       default:
-        return this.viewUnknownMessage(message);
+        return m(
+          MessageCard, {header: "Unknown Message Type", message, class: "unhandled", inspectable: true}, [
+            m("a", {href: message.type}, message.type)
+          ]
+        )
     }
   }
 
@@ -493,60 +421,9 @@ class MessageHistoryComponent
             },
             onscroll: (e: Event) => this.handleScroll(e),
           },
-            this.messages.map((messages) => this.handleMessageView(messages))
+            this.messages.map((message) => this.viewMessage(message))
         )
       ),
-      // Unknown Message Dialog
-      this.isModalOpen &&
-        m(".modal.is-active", [
-        m(".modal-background", {
-          onclick: () => (this.isModalOpen = false),
-        }),
-          m(".modal-card", {
-            style: {
-              maxWidth: "calc(100vw - 40px)",
-              width: "100%",
-            }
-          },
-          [
-            m("header.modal-card-head", [
-              m("p.modal-card-title", "Raw DIDComm Message"),
-              m("button.delete", {
-                "aria-label": "close",
-                onclick: () => (this.isModalOpen = false),
-              }),
-            ]),
-            m("section.modal-card-body", [
-              m(".field", [
-                m(
-                  "div.control",
-                  m(
-                    'textarea.textarea.is-normal[readonly]',
-                    {
-                      style: {
-                        width: "100%",
-                        height: "100%",
-                      }
-                    },
-                    this.rawMessageData
-                  )
-                ),
-              ]),
-            ]),
-            m("footer.modal-card-foot", {
-              style: {
-                flexDirection: "row-reverse"
-              }
-            },
-            [
-              m(
-                "button.button",
-                { onclick: () => (this.isModalOpen = false) },
-                  "Exit"
-              ),
-            ]),
-          ]),
-      ]),
       m("div.message-controls", { style: "margin-top: 1rem;" }, [
         m("div.field.has-addons", [
           m(

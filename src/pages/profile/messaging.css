@@ -17,6 +17,24 @@ div.messages {
 	flex-direction: column;
 	justify-content: flex-end;
 	padding: 1rem;
-	max-height: calc(100% - 3em);
-	height: calc(100% - 3em);
+	max-height: calc(100% - 6.5em);
+	height: calc(100% - 6.5em);
+}
+
+ul.disclose-list {
+	list-style-type: disc; 
+	list-style-position: inside;
+}
+.message-body {
+	background-color: #fff;
+}
+
+.message.sent .message-header {
+	background-color: #48c78e;
+	color: #fff;
+}
+
+.message.received .message-header {
+	background-color: #3e8ed0;
+	color: #fff;
 }
