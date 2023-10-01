@@ -4,10 +4,10 @@ import Icon from "../../components/icon"
 import "./navbar.css"
 
 import { library } from "@fortawesome/fontawesome-svg-core"
-import { faArrowLeft, faCircle, faEdit, faRefresh } from "@fortawesome/free-solid-svg-icons"
+import { faArrowLeft, faCircle, faEdit, faRefresh, faChevronDown, faChevronUp} from "@fortawesome/free-solid-svg-icons"
 import agent from "../../lib/agent"
 
-library.add(faArrowLeft, faCircle, faEdit)
+library.add(faArrowLeft, faCircle, faEdit, faRefresh, faChevronDown, faChevronUp)
 
 interface NavbarAttributes {
   profileName: string
@@ -77,13 +77,13 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
     const { profileName, isConnected, did, toggleConnection, onProfileNameChange } = vnode.attrs
     const truncatedDid = did && did.length > 20 ? `${did.slice(0, 20)}...` : did;
 
-    return m("nav.navbar", [
+    return m(".navbar", [
       m(".navbar-brand", { style: {display: "flex", alignItems: "center"} }, [
       this.editMode ? m("input.title", {
         value: this.editedProfileName,
         oninput: (e: Event) => this.editedProfileName = (e.target as HTMLInputElement).value,
-        onblur: async () => {
-          await onProfileNameChange(this.editedProfileName)
+        onblur: () => {
+          onProfileNameChange(this.editedProfileName)
           this.editMode = false
         },
         style: {
@@ -97,7 +97,7 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
           input.focus()
           input.setSelectionRange(this.editedProfileName.length, this.editedProfileName.length)
         },
-        onkeydown: async (e: KeyboardEvent) => {
+        onkeydown: (e: KeyboardEvent) => {
           if (e.key === 'Enter') {
             e.preventDefault()
             // Onblur covers this, so we don't need to send another message
@@ -125,6 +125,14 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
         m("span.icon",
           m("i", { class: this.didCopied ? "fa-solid fa-check" : "fa-solid fa-copy" })
          )
+        ),
+        m("button#menu-expand.button.is-small.is-white",
+          {
+            onclick: () => { this.burgerActive = !this.burgerActive }
+          },
+          m("span.icon",
+            m("i", { class: this.burgerActive ? "fa-solid fa-chevron-up" : "fa-solid fa-chevron-down" })
+          )
         )
       ]),
       ]),
