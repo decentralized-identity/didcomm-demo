@@ -110,7 +110,7 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
   }
 
   view() {
-    return m(".console-container", [
+    return m(".console", [
       m(ConsoleControls, {
         copyLogs: this.copyLogs.bind(this),
         clearLogs: this.clearLogs.bind(this),

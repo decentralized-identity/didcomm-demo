@@ -78,6 +78,12 @@ class ContactListComponent
   view(vnode: m.CVnode<ContactListComponentAttrs>) {
     return m(
       "div",
+      {
+        style: {
+          overflowY: "scroll",
+          maxHeight: "100%",
+        }
+      },
       [
         // Contacts Panel
         m(
@@ -382,179 +388,160 @@ class MessageHistoryComponent
   }
 
   view(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
-    return m("div.messages", [
-      m(
-        "div",
-        {
-          style: "height: 100%;",
-        },
-        [
-          m("span.navbar-item", {style: {display: "flex", alignItems: "flex-start"}}, [
-            m(
-              "button.button.is-small.is-light",
-              {
-                onclick: vnode.attrs.onBack,
-                style: "width: min-content;",
+    return m(".message-history", [
+      m("span.navbar-item.messages-nav", [
+        m(
+          "button.button.is-small.is-light",
+          {
+            onclick: vnode.attrs.onBack,
+          },
+          [
+            m("span.icon", m("i.fas.fa-arrow-left")),
+            m("span", "Back to Contacts"),
+          ]
+        ),
+        m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column", position: "relative"}}, [
+          this.editMode ? 
+            m("span", {style: {display: "flex", alignItems: "center", position: "absolute", width: "100%"}}, [
+            m("input", {
+              value: this.editedContactLabel,
+              oninput: (e: Event) => this.editedContactLabel = (e.target as HTMLInputElement).value,
+                style: {
+                border: "none",
+                background: "transparent",
+                outline: "none",
+                paddingLeft: "12px",
+                paddingRight: "12px",
+                width: "100%",
+                textAlign: "right",
+                fontSize: "1em",
               },
-              [
-                m("span.icon", m("i.fas.fa-arrow-left")),
-                m("span", "Back to Contacts"),
-              ]
-            ),
-            m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column", position: "relative"}}, [
-              this.editMode ? 
-                m("span", {style: {display: "flex", alignItems: "center", position: "absolute", width: "100%"}}, [
-                m("input", {
-                  value: this.editedContactLabel,
-                  oninput: (e: Event) => this.editedContactLabel = (e.target as HTMLInputElement).value,
-                  style: {
-                    border: "none",
-                    background: "transparent",
-                    outline: "none",
-                    paddingLeft: "12px",
-                    paddingRight: "12px",
-                    width: "100%",
-                    textAlign: "right",
-                    fontSize: "1em",
-                  },
-                  oncreate: (vnode: m.VnodeDOM) => {
-                    const input = vnode.dom as HTMLInputElement
-                    input.focus()
-                    input.setSelectionRange(this.editedContactLabel.length, this.editedContactLabel.length)
-                  },
-                  onkeydown: (e: KeyboardEvent) => {
-                    if (e.key === 'Escape') {
-                      e.preventDefault()
-                      this.editMode = false
-                    }
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      this.updateLabel(this.editedContactLabel)
-                      this.editMode = false
-                    }
-                  }
-                }),
-                m("button.button.is-white.is-small", {
-                  onclick: () => {
-                    this.editMode = false
-                  },
-                  style: {marginRight: ".5em"}
-                }, [
-                  m("span.icon", [m("i.fas.fa-cancel")])
-                ]),
-                m("button.button.is-white.is-small", {
-                  onclick: () => {
-                    this.updateLabel(this.editedContactLabel)
-                    this.editMode = false
-                  },
-                  style: {marginRight: ".5em"}
-                }, [
-                  m("span.icon", [m("i.fas.fa-save")])
-                ]),
-              ]) : m("span", {style: {display: "flex", alignItems: "center", position: "absolute", width: "100%"}}, [
-                m("span", {
-                  style: {
-                    marginBottom: "0",
-                    textAlign: "right",
-                    marginRight: ".5em",
-                    width: "100%",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden"
-                  }
-                }, this.contact.label || this.contact.did),
-                m("button.button.is-white.is-small", {
-                  onclick: () => {
-                    this.editMode = true
-                    this.editedContactLabel = this.contact.label
-                  },
-                  style: {marginRight: ".5em"}
-                }, [
-                  m("span.icon", [m("i.fas.fa-edit")])
-                ]),
-              ]),
+              oncreate: (vnode: m.VnodeDOM) => {
+                const input = vnode.dom as HTMLInputElement
+                input.focus()
+                input.setSelectionRange(this.editedContactLabel.length, this.editedContactLabel.length)
+              },
+              onkeydown: (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  this.editMode = false
+                }
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  this.updateLabel(this.editedContactLabel)
+                  this.editMode = false
+                }
+              }
+            }),
+            m("button.button.is-white.is-small", {
+              onclick: () => {
+                this.editMode = false
+              },
+              style: {marginRight: ".5em"}
+            }, [
+              m("span.icon", [m("i.fas.fa-cancel")])
+            ]),
+            m("button.button.is-white.is-small", {
+              onclick: () => {
+                this.updateLabel(this.editedContactLabel)
+                this.editMode = false
+              },
+              style: {marginRight: ".5em"}
+            }, [
+              m("span.icon", [m("i.fas.fa-save")])
+            ]),
+          ]) : m("span", {style: {display: "flex", alignItems: "center", position: "absolute", width: "100%"}}, [
+            m("span", {
+              style: {
+                marginBottom: "0",
+                textAlign: "right",
+                marginRight: ".5em",
+                width: "100%",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                overflow: "hidden"
+              }
+            }, this.contact.label || this.contact.did),
+            m("button.button.is-white.is-small", {
+              onclick: () => {
+                this.editMode = true
+                this.editedContactLabel = this.contact.label
+              },
+              style: {marginRight: ".5em"}
+            }, [
+              m("span.icon", [m("i.fas.fa-edit")])
             ]),
           ]),
-          m(
-            "div",
-            {
-              style: {
-                display: "flex",
-                "flex-direction": "column",
-                "justify-content": "flex-end",
-                padding: "1rem",
-                "max-height": "calc(100% - 2em)",
-                height: "calc(100% - 2em)",
-              },
+        ]),
+      ]),
+      m(
+        ".messages",
+        m(
+          "div#message-box",
+          {
+            style: {
+              display: "flex",
+              "flex-direction": "column",
+              "max-height": "100%",
+              "overflow-y": "auto",
             },
-            m(
-              "div#message-box",
-              {
-                style: {
-                  display: "flex",
-                  "flex-direction": "column",
-                  "max-height": "100%",
-                  "overflow-y": "auto",
-                },
-                onscroll: (e: Event) => this.handleScroll(e),
-              },
-              this.messages.map((messages) => this.handleMessageView(messages))
-            )
-          ),
-        ],
-        // Unknown Message Dialog
-        this.isModalOpen &&
-          m(".modal.is-active", [
-            m(".modal-background", {
-              onclick: () => (this.isModalOpen = false),
-            }),
-            m(".modal-card", {
-              style: {
-                maxWidth: "calc(100vw - 40px)",
-                width: "100%",
-              }
-            },
-            [
-              m("header.modal-card-head", [
-                m("p.modal-card-title", "Raw DIDComm Message"),
-                m("button.delete", {
-                  "aria-label": "close",
-                  onclick: () => (this.isModalOpen = false),
-                }),
-              ]),
-              m("section.modal-card-body", [
-                m(".field", [
-                  m(
-                    "div.control",
-                    m(
-                      'textarea.textarea.is-normal[readonly]',
-                      {
-                        style: {
-                          width: "100%",
-                          height: "100%",
-                        }
-                      },
-                      this.rawMessageData
-                    )
-                  ),
-                ]),
-              ]),
-              m("footer.modal-card-foot", {
-                style: {
-                  flexDirection: "row-reverse"
-                }
-              },
-              [
+            onscroll: (e: Event) => this.handleScroll(e),
+          },
+            this.messages.map((messages) => this.handleMessageView(messages))
+        )
+      ),
+      // Unknown Message Dialog
+      this.isModalOpen &&
+        m(".modal.is-active", [
+        m(".modal-background", {
+          onclick: () => (this.isModalOpen = false),
+        }),
+          m(".modal-card", {
+            style: {
+              maxWidth: "calc(100vw - 40px)",
+              width: "100%",
+            }
+          },
+          [
+            m("header.modal-card-head", [
+              m("p.modal-card-title", "Raw DIDComm Message"),
+              m("button.delete", {
+                "aria-label": "close",
+                onclick: () => (this.isModalOpen = false),
+              }),
+            ]),
+            m("section.modal-card-body", [
+              m(".field", [
                 m(
-                  "button.button",
-                  { onclick: () => (this.isModalOpen = false) },
-                  "Exit"
+                  "div.control",
+                  m(
+                    'textarea.textarea.is-normal[readonly]',
+                    {
+                      style: {
+                        width: "100%",
+                        height: "100%",
+                      }
+                    },
+                    this.rawMessageData
+                  )
                 ),
               ]),
             ]),
+            m("footer.modal-card-foot", {
+              style: {
+                flexDirection: "row-reverse"
+              }
+            },
+            [
+              m(
+                "button.button",
+                { onclick: () => (this.isModalOpen = false) },
+                  "Exit"
+              ),
+            ]),
           ]),
-      ),
-      m("div", { style: "margin-top: 1rem;" }, [
+      ]),
+      m("div.message-controls", { style: "margin-top: 1rem;" }, [
         m("div.field.has-addons", [
           m(
             "div.control.is-expanded",
