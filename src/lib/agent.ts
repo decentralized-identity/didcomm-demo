@@ -110,19 +110,20 @@ export class Agent {
     return response
   }
 
-  private handleCoreProtocolMessage(message: IMessage) {
-    switch(message.type) {
+  private handleCoreProtocolMessage(message: AgentMessage) {
+    const msg = message.message
+    switch(msg.type) {
       case "https://didcomm.org/trust-ping/2.0/ping":
-        if(message.body?.response_requested !== false) {
-          this.sendMessage(message.from, {
+        if(msg.body?.response_requested !== false) {
+          this.sendMessage(msg.from, {
             "type": "https://didcomm.org/trust-ping/2.0/ping-response",
-            "thid": message.id,
+            "thid": msg.id,
           })
         }
         break;
       case "https://didcomm.org/discover-features/2.0/queries":
-        const discloseMessage = this.handleDiscoverFeatures(message)
-        this.sendMessage(message.from, discloseMessage)
+        const discloseMessage = this.handleDiscoverFeatures(msg)
+        this.sendMessage(msg.from, discloseMessage)
         break;
     }
   }
@@ -131,12 +132,11 @@ export class Agent {
     const from = message.from == this.profile.did ? this.profile as Contact : ContactService.getContact(message.from)
     const to = message.to[0] == this.profile.did ? this.profile as Contact : ContactService.getContact(message.to[0])
 
-    eventbus.emit("messageReceived", {sender: from, receiver: to, message})
-    eventbus.emit(message.type, {sender: from, receiver: to, message})
     if(ContactService.getContact(message.from)) {
       let fromName = message.from;
-      if(from)
+      if(from) {
         fromName = from.label || from.did;
+      }
       ContactService.addMessage(
         message.from, {
           sender: fromName,
@@ -148,6 +148,8 @@ export class Agent {
         }
       )
     }
+    eventbus.emit("messageReceived", {sender: from, receiver: to, message})
+    eventbus.emit(message.type, {sender: from, receiver: to, message})
   }
 
   set onmessage(callback: (message: AgentMessage) => void) {
