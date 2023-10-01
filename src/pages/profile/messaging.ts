@@ -276,9 +276,15 @@ class MessageHistoryComponent
   viewMessageBoxHeader(header: string, message: Message) {
     const isSelf = message.raw?.from == agent.profile.did
     const icon = isSelf ? "right-from-bracket" : "right-to-bracket"
-    return m("div", {style: {width: "100%"}}, [
-      m("span.icon", {style: {float: "right"}}, m(`i.fas.fa-${icon}`)),
-      m("p", `${header} - ${message.timestamp.toDateString()}`),
+    return m("div", {
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+      }
+    }, [
+      m("span", {style: {flexGrow: 1}}, `${header} - ${message.timestamp.toDateString()}`),
+      m("span.icon", m(`i.fas.fa-${icon}`)),
     ])
   }
 
@@ -350,7 +356,7 @@ class MessageHistoryComponent
 
   viewUnknownMessage(message: Message) {
     return m(
-      ".message.is-danger",
+      ".message.is-danger.is-small",
       [
         m(".message-header", [
           this.viewMessageBoxHeader("Unknown Message Type", message),

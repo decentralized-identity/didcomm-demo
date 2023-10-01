@@ -82,7 +82,8 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
       this.editMode ? m("input.title", {
         value: this.editedProfileName,
         oninput: (e: Event) => this.editedProfileName = (e.target as HTMLInputElement).value,
-        onblur: () => {
+        onblur: (e: Event) => {
+          e.preventDefault()
           onProfileNameChange(this.editedProfileName)
           this.editMode = false
         },
@@ -102,6 +103,7 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
             e.preventDefault()
             // Onblur covers this, so we don't need to send another message
             //await onProfileNameChange(this.editedProfileName)
+            onProfileNameChange(this.editedProfileName)
             this.editMode = false
           }
         },
