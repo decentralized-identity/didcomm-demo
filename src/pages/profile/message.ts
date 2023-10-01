@@ -35,7 +35,7 @@ export default class MessageCard implements m.ClassComponent<MessageCardAttrs> {
         alignItems: "center",
       }
     }, [
-      m("span", {style: {flexGrow: 1}}, `${header} - ${message.timestamp.toDateString()}`),
+      m("span", {style: {flexGrow: 1}}, `${header} - ${message.timestamp.toLocaleTimeString()}`),
       m("span.icon", m(`i.fas.fa-${icon}`)),
     ])
   }

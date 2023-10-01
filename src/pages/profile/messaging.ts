@@ -334,9 +334,9 @@ class MessageHistoryComponent
             m("span", "Back to Contacts"),
           ]
         ),
-        m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column", position: "relative"}}, [
+        m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column"}}, [
           this.editMode ? 
-            m("span", {style: {display: "flex", alignItems: "center", position: "absolute", width: "100%"}}, [
+            m("span", {style: {display: "flex", alignItems: "center"}}, [
             m("input", {
               value: this.editedContactLabel,
               oninput: (e: Event) => this.editedContactLabel = (e.target as HTMLInputElement).value,
@@ -384,7 +384,7 @@ class MessageHistoryComponent
             }, [
               m("span.icon", [m("i.fas.fa-save")])
             ]),
-          ]) : m("span", {style: {display: "flex", alignItems: "center", position: "absolute", width: "100%"}}, [
+          ]) : m("span", {style: {display: "flex", alignItems: "center"}}, [
             m("span", {
               style: {
                 marginBottom: "0",
