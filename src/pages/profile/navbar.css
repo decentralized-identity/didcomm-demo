@@ -1,3 +1,6 @@
+.navbar-menu {
+	margin-right: 0 !important;
+}
 .toast {
   position: fixed;
   top: 20px;
