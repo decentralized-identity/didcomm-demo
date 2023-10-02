@@ -30,7 +30,6 @@
     "@types/prismjs": "^1.26.0",
     "@types/uuid": "^9.0.3",
     "bulma": "^0.9.4",
-    "codejar": "^4.2.0",
     "css-loader": "^6.8.1",
     "mini-css-extract-plugin": "^2.7.6",
     "postcss-loader": "^7.3.3",
