@@ -69,6 +69,7 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
   currentGroup: LogGroups = LogGroups.Everything
   autoScroll: boolean = true
   logsViewport: HTMLElement | null = null
+  subscription: any
 
   appendLog(record: Record) {
     this.logs.push(record.message)
@@ -128,10 +129,14 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
     ])
   }
 
-  oncreate(vnode: m.VnodeDOM<ConsoleAttributes>) {
-    logger.subscribe(LogTopic.LOG, async (record: any) => {
+  oncreate() {
+    this.subscription = logger.subscribe(LogTopic.LOG, async (record: any) => {
       this.appendLog(record)
     })
+  }
+
+  onremove() {
+    this.subscription.close()
   }
 
   onupdate(vnode: m.VnodeDOM<ConsoleAttributes>) {

@@ -27,7 +27,7 @@ export class Agent {
   constructor() {
     this.worker = new Worker(new URL("./worker.ts", import.meta.url))
     this.worker.onmessage = this.handleWorkerMessage.bind(this)
-    this.onmessage = this.handleCoreProtocolMessage.bind(this)
+    this.onAnyMessage(this.handleCoreProtocolMessage.bind(this))
   }
 
   setupProfile(profile: Profile) {
@@ -152,16 +152,12 @@ export class Agent {
     eventbus.emit(message.type, {sender: from, receiver: to, message})
   }
 
-  set onmessage(callback: (message: AgentMessage) => void) {
-    eventbus.on("messageReceived", callback)
-  }
-
   public onMessage(type: string, callback: (message: AgentMessage) => void) {
-    eventbus.on(type, callback)
+    return eventbus.on(type, callback)
   }
 
   public onAnyMessage(callback: (message: AgentMessage) => void) {
-    eventbus.on("messageReceived", callback);
+    return eventbus.on("messageReceived", callback);
   }
 
   public async sendMessage(to: Contact | DID, message: DIDCommMessage) {

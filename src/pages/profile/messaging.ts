@@ -5,6 +5,7 @@ import MessageCard from "./message"
 import agent, { AgentMessage } from "../../lib/agent"
 
 import "./messaging.css"
+import eventbus, { ScopedEventBus } from "../../lib/eventbus"
 
 interface ContactListComponentAttrs {
   onSelect: (contact: Contact) => void
@@ -13,25 +14,35 @@ interface ContactListComponentAttrs {
 class ContactListComponent
   implements m.ClassComponent<ContactListComponentAttrs>
 {
-  contacts: Contact[] = []
-  isModalOpen: boolean = false
-  newContact: Partial<Contact> = {}
+  private contacts: Contact[] = []
+  private isModalOpen: boolean = false
+  private newContact: Partial<Contact> = {}
+  private eventbus: ScopedEventBus
 
   oninit() {
     this.contacts = ContactService.getContacts()
-    agent.onAnyMessage(this.onMessageReceived.bind(this))
-    agent.onMessage("https://didcomm.org/user-profile/1.0/profile", this.onProfileUpdate.bind(this))
-    agent.onMessage("https://didcomm.org/user-profile/1.0/request-profile", this.onProfileRequest.bind(this))
+    this.eventbus = eventbus.scoped()
+    this.eventbus.collect(
+      agent.onAnyMessage(this.onMessageReceived.bind(this)),
+      agent.onMessage("https://didcomm.org/user-profile/1.0/profile", this.onProfileUpdate.bind(this)),
+      agent.onMessage("https://didcomm.org/user-profile/1.0/request-profile", this.onProfileRequest.bind(this)),
+    )
+  }
+
+  onremove() {
+    this.eventbus.close()
   }
 
   async onProfileUpdate(message: AgentMessage) {
     let contact = ContactService.getContact(message.message.from);
-    if(!contact)
+    if(!contact) {
       return;
+    }
 
     let label = message.message.body?.profile?.displayName;
-    if(!label)
+    if(!label) {
       return;
+    }
 
     contact.label = label;
     ContactService.addContact(contact);
@@ -39,8 +50,9 @@ class ContactListComponent
 
   async onProfileRequest(message: AgentMessage) {
     let contact = ContactService.getContact(message.message.from);
-    if(!contact)
+    if(!contact) {
       return;
+    }
     await agent.sendProfile(contact)
   }
 
@@ -216,14 +228,21 @@ class MessageHistoryComponent
   contact: Contact
   private editMode: boolean = false
   private editedContactLabel: string = ""
-  private isModalOpen: boolean = false
-  private rawMessageData: string = ""
   private autoScroll: boolean = true
+  private eventbus: ScopedEventBus
 
   oninit(vnode: m.CVnode<MessageHistoryComponentAttrs>) {
     this.contact = vnode.attrs.contact
+    ContactService.selectContact(this.contact)
     this.messages = ContactService.getMessageHistory(vnode.attrs.contact.did)
-    agent.onMessage("messageReceived", this.onMessageReceived.bind(this))
+    this.eventbus = eventbus.scoped()
+    this.eventbus.collect(
+      agent.onAnyMessage(this.onMessageReceived.bind(this))
+    )
+  }
+
+  onremove() {
+    this.eventbus.close()
   }
 
   handleScroll(event: Event) {

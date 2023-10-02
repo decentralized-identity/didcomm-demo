@@ -5,11 +5,26 @@ interface PatternListeners {
   listeners: Callback[];
 }
 
+class EventListenerHandle {
+  eventbus: EventBus
+  pattern: RegExp
+  listener: Callback
+  constructor(eventbus: EventBus, pattern: RegExp, listener: Callback) {
+    this.eventbus = eventbus
+    this.pattern = pattern
+    this.listener = listener
+  }
+
+  off() {
+    this.eventbus.off(this.pattern, this.listener)
+  }
+}
+
 export class EventBus {
   private listeners: PatternListeners[] = [];
   private static instance: EventBus;
 
-  private constructor() {}
+  protected constructor() {}
 
   static getInstance(): EventBus {
     if (!EventBus.instance) {
@@ -18,7 +33,13 @@ export class EventBus {
     return EventBus.instance;
   }
 
-  on(pattern: RegExp | string, listener: Callback): void {
+  /**
+   * Subscribe to an event.
+   * @param pattern Regex pattern to match the event name.
+   * @param listener Callback to be called when the event is emitted.
+   * @returns Handle to the listener. Can be used to unsubscribe.
+   */
+  on(pattern: RegExp | string, listener: Callback): EventListenerHandle {
     if (typeof pattern === "string") {
       pattern = new RegExp(pattern);
     }
@@ -33,6 +54,7 @@ export class EventBus {
     if (!found) {
       this.listeners.push({ pattern: pattern, listeners: [listener] });
     }
+    return new EventListenerHandle(this, pattern, listener)
   }
 
   off(pattern: RegExp, listener: Callback): void {
@@ -56,6 +78,44 @@ export class EventBus {
         }
       }
     }
+  }
+
+  scoped(): ScopedEventBus {
+    return new ScopedEventBus(this)
+  }
+}
+
+export class ScopedEventBus extends EventBus {
+  private handles: EventListenerHandle[] = []
+  private eventbus: EventBus
+
+  public constructor(eventbus: EventBus) {
+    super()
+    this.eventbus = eventbus
+  }
+
+  on(pattern: string | RegExp, listener: Callback): EventListenerHandle {
+    const handle = this.eventbus.on(pattern, listener)
+    this.handles.push(handle)
+    return handle
+  }
+
+  collect(...handles: EventListenerHandle[]) {
+    this.handles.push(...handles)
+  }
+
+  off(pattern: RegExp, listener: Callback): void {
+    this.eventbus.off(pattern, listener)
+  }
+
+  emit(event: string, ...args: any[]): Promise<void> {
+    return this.eventbus.emit(event, ...args)
+  }
+
+  close() {
+    this.handles.forEach(handle => {
+      handle.off()
+    })
   }
 }
 
