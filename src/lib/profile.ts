@@ -3,7 +3,6 @@ export interface Profile {
   did?: string
 }
 
-
 const defaultActors: string[] = [
   "Alice",
   "Bob",
@@ -33,14 +32,12 @@ const defaultActors: string[] = [
   "Zoe",
 ]
 
-
 function getRandomActor(): string {
-    const randomIndex = Math.floor(Math.random() * defaultActors.length);
-    return defaultActors[randomIndex];
+  const randomIndex = Math.floor(Math.random() * defaultActors.length)
+  return defaultActors[randomIndex]
 }
 
-
-let profile: Profile;
+let profile: Profile
 export function generateProfile(options: Partial<Profile>): Profile {
   profile = {
     label: options.label || getRandomActor(),

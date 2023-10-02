@@ -10,9 +10,9 @@ const SAMPLES: Record<string, any> = {
     type: "https://didcomm.org/trust-ping/2.0/ping",
     body: {
       response_request: true,
-    }
+    },
   },
-  "None": {},
+  None: {},
 }
 
 export default class ComposeComponent implements m.ClassComponent {
@@ -32,7 +32,9 @@ export default class ComposeComponent implements m.ClassComponent {
   onSampleSelected(e: Event) {
     console.log((e.target as HTMLSelectElement).value)
     this.content = JSON.stringify(
-      SAMPLES[(e.target as HTMLSelectElement).value], null, 2
+      SAMPLES[(e.target as HTMLSelectElement).value],
+      null,
+      2
     )
     console.log(this.content)
     m.redraw()
@@ -40,10 +42,7 @@ export default class ComposeComponent implements m.ClassComponent {
 
   view() {
     return m("div.compose", [
-      m(
-        "div.editor-container",
-        m(JSONEditor, {content: this.content})
-      ),
+      m("div.editor-container", m(JSONEditor, { content: this.content })),
 
       m("div", { style: "margin-top: 1rem;" }, [
         m("div.field.has-addons", [
@@ -55,24 +54,33 @@ export default class ComposeComponent implements m.ClassComponent {
                 "select",
                 {
                   style: "width: 100%",
-                  onchange: this.onSampleSelected.bind(this)
+                  onchange: this.onSampleSelected.bind(this),
                 },
-                Object.keys(SAMPLES).map(name => m(
-                  "option", {
-                    value: name,
-                  }, name
-                )),
-               )
+                Object.keys(SAMPLES).map(name =>
+                  m(
+                    "option",
+                    {
+                      value: name,
+                    },
+                    name
+                  )
+                )
+              )
             )
           ),
-          m("div.control", m(
-            "button.button.is-info", {
-              onclick: this.onSendClicked.bind(this),
-              disabled: !contacts.selectedContact,
-            }, "Send"
-          )),
+          m(
+            "div.control",
+            m(
+              "button.button.is-info",
+              {
+                onclick: this.onSendClicked.bind(this),
+                disabled: !contacts.selectedContact,
+              },
+              "Send"
+            )
+          ),
         ]),
-      ])
-    ]) 
+      ]),
+    ])
   }
 }

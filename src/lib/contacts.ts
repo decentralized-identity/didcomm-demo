@@ -130,8 +130,8 @@ export class NullContactService extends ContactService {
     this.contacts.push(contact)
   }
 
-  saveMessageHistory(did: string, messages: Message[]): void { }
-  addMessage(did: string, message: Message): void { }
+  saveMessageHistory(did: string, messages: Message[]): void {}
+  addMessage(did: string, message: Message): void {}
 }
 
 export class EphemeralContactService extends ContactService {
@@ -151,11 +151,11 @@ export class EphemeralContactService extends ContactService {
   }
 
   addContact(contact: Contact): void {
-      this.contacts[contact.did] = contact
+    this.contacts[contact.did] = contact
   }
 
   saveMessageHistory(did: string, messages: Message[]): void {
-      this.messages[did] = messages
+    this.messages[did] = messages
   }
 
   addMessage(did: string, message: Message): void {

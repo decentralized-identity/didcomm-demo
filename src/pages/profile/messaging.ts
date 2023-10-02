@@ -24,8 +24,14 @@ class ContactListComponent
     this.eventbus = eventbus.scoped()
     this.eventbus.collect(
       agent.onAnyMessage(this.onMessageReceived.bind(this)),
-      agent.onMessage("https://didcomm.org/user-profile/1.0/profile", this.onProfileUpdate.bind(this)),
-      agent.onMessage("https://didcomm.org/user-profile/1.0/request-profile", this.onProfileRequest.bind(this)),
+      agent.onMessage(
+        "https://didcomm.org/user-profile/1.0/profile",
+        this.onProfileUpdate.bind(this)
+      ),
+      agent.onMessage(
+        "https://didcomm.org/user-profile/1.0/request-profile",
+        this.onProfileRequest.bind(this)
+      )
     )
   }
 
@@ -34,35 +40,36 @@ class ContactListComponent
   }
 
   async onProfileUpdate(message: AgentMessage) {
-    let contact = ContactService.getContact(message.message.from);
-    if(!contact) {
-      return;
+    let contact = ContactService.getContact(message.message.from)
+    if (!contact) {
+      return
     }
 
-    let label = message.message.body?.profile?.displayName;
-    if(!label) {
-      return;
+    let label = message.message.body?.profile?.displayName
+    if (!label) {
+      return
     }
 
-    contact.label = label;
-    ContactService.addContact(contact);
+    contact.label = label
+    ContactService.addContact(contact)
   }
 
   async onProfileRequest(message: AgentMessage) {
-    let contact = ContactService.getContact(message.message.from);
-    if(!contact) {
-      return;
+    let contact = ContactService.getContact(message.message.from)
+    if (!contact) {
+      return
     }
     await agent.sendProfile(contact)
   }
 
   async onMessageReceived(message: AgentMessage) {
-    if(message.message.to[0]!=agent.profile.did)
-      return;
+    if (message.message.to[0] != agent.profile.did) return
     if (!ContactService.getContact(message.message.from)) {
-      let newContact = {did: message.message.from};
-      ContactService.addContact(newContact as Contact);
-      if(message.message.type != "https://didcomm.org/user-profile/1.0/profile") {
+      let newContact = { did: message.message.from }
+      ContactService.addContact(newContact as Contact)
+      if (
+        message.message.type != "https://didcomm.org/user-profile/1.0/profile"
+      ) {
         await agent.requestProfile(newContact)
       }
       this.contacts = ContactService.getContacts()
@@ -77,10 +84,10 @@ class ContactListComponent
       this.isModalOpen = false
       agent.sendProfile(this.newContact as Contact)
       setTimeout(async () => {
-        if(!this.newContact.label)
+        if (!this.newContact.label)
           await agent.requestProfile(this.newContact as Contact)
         agent.sendFeatureDiscovery(this.newContact as Contact)
-      }, 500);
+      }, 500)
       //this.requestFeatures(this.newContact)
     }
   }
@@ -92,7 +99,7 @@ class ContactListComponent
         style: {
           overflowY: "scroll",
           maxHeight: "100%",
-        }
+        },
       },
       [
         // Contacts Panel
@@ -124,28 +131,31 @@ class ContactListComponent
               },
               [
                 m("span.panel-icon", m("i.fas.fa-user")),
-                m("div", {
-                  style: {
-                    display: "inline-block",
-                    position: "relative",
-                    width: "100%",
-                    marginTop: "-0.5em",
-                    minHeight: "1em",
-                  }
-                },
-                m("span",
+                m(
+                  "div",
                   {
                     style: {
+                      display: "inline-block",
+                      position: "relative",
                       width: "100%",
-                      position: "absolute",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                    }
+                      marginTop: "-0.5em",
+                      minHeight: "1em",
+                    },
                   },
-                  contact.label || contact.did
-                 ),
-                 ),
+                  m(
+                    "span",
+                    {
+                      style: {
+                        width: "100%",
+                        position: "absolute",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                      },
+                    },
+                    contact.label || contact.did
+                  )
+                ),
               ]
             )
           )
@@ -236,9 +246,7 @@ class MessageHistoryComponent
     ContactService.selectContact(this.contact)
     this.messages = ContactService.getMessageHistory(vnode.attrs.contact.did)
     this.eventbus = eventbus.scoped()
-    this.eventbus.collect(
-      agent.onAnyMessage(this.onMessageReceived.bind(this))
-    )
+    this.eventbus.collect(agent.onAnyMessage(this.onMessageReceived.bind(this)))
   }
 
   onremove() {
@@ -273,9 +281,9 @@ class MessageHistoryComponent
       type: "https://didcomm.org/basicmessage/2.0/message",
       lang: "en",
       body: {
-        content
-      }
-    };
+        content,
+      },
+    }
     await agent.sendMessage(this.contact, message)
     m.redraw()
   }
@@ -287,11 +295,11 @@ class MessageHistoryComponent
 
   updateLabel(label: string) {
     this.contact.label = label
-    ContactService.addContact(this.contact as Contact);
+    ContactService.addContact(this.contact as Contact)
   }
 
   viewMessage(message: Message) {
-    switch(message.type) {
+    switch (message.type) {
       case "https://didcomm.org/basicmessage/2.0/message":
         return m(
           MessageCard,
@@ -299,43 +307,83 @@ class MessageHistoryComponent
             header: message.sender,
             message,
           },
-          [
-            m("p", message.content),
-          ]
+          [m("p", message.content)]
         )
       case "https://didcomm.org/user-profile/1.0/profile":
         return m(
-          MessageCard, {header: "Profile Data", message, class: "info", inspectable: true}, [
-            m("p", `New Display Name: ${message.raw.body?.profile?.displayName}`),
+          MessageCard,
+          { header: "Profile Data", message, class: "info", inspectable: true },
+          [
+            m(
+              "p",
+              `New Display Name: ${message.raw.body?.profile?.displayName}`
+            ),
           ]
         )
       case "https://didcomm.org/user-profile/1.0/request-profile":
         return m(
-          MessageCard, {header: "Profile Request", message, class: "info", inspectable: true}, [
-            m("p", `Requested attributes: ${message.raw.body?.query?.join(", ")}`),
+          MessageCard,
+          {
+            header: "Profile Request",
+            message,
+            class: "info",
+            inspectable: true,
+          },
+          [
+            m(
+              "p",
+              `Requested attributes: ${message.raw.body?.query?.join(", ")}`
+            ),
           ]
         )
       case "https://didcomm.org/discover-features/2.0/queries":
         return m(
-          MessageCard, {header: "Feature Query", message, class: "info", inspectable: true},
-          message.raw.body.queries.map((query: any) => 
-            m("p", `Requesting features of type "${query["feature-type"]}" matching "${query.match}"`)
+          MessageCard,
+          {
+            header: "Feature Query",
+            message,
+            class: "info",
+            inspectable: true,
+          },
+          message.raw.body.queries.map((query: any) =>
+            m(
+              "p",
+              `Requesting features of type "${query["feature-type"]}" matching "${query.match}"`
+            )
           )
         )
       case "https://didcomm.org/discover-features/2.0/disclose":
         return m(
-          MessageCard, {header: "Feature Disclosure", message, class: "info", inspectable: true},
-          m("ul.disclose-list",
-            message.raw.body.disclosures.map((disclosure: any) => 
-              m("li", m("span", [`${disclosure["feature-type"]}: `, m("a", {href: disclosure.id}, disclosure.id)]))
+          MessageCard,
+          {
+            header: "Feature Disclosure",
+            message,
+            class: "info",
+            inspectable: true,
+          },
+          m(
+            "ul.disclose-list",
+            message.raw.body.disclosures.map((disclosure: any) =>
+              m(
+                "li",
+                m("span", [
+                  `${disclosure["feature-type"]}: `,
+                  m("a", { href: disclosure.id }, disclosure.id),
+                ])
+              )
             )
           )
         )
       default:
         return m(
-          MessageCard, {header: "Unknown Message Type", message, class: "unhandled", inspectable: true}, [
-            m("a", {href: message.type}, message.type)
-          ]
+          MessageCard,
+          {
+            header: "Unknown Message Type",
+            message,
+            class: "unhandled",
+            inspectable: true,
+          },
+          [m("a", { href: message.type }, message.type)]
         )
     }
   }
@@ -353,79 +401,115 @@ class MessageHistoryComponent
             m("span", "Back to Contacts"),
           ]
         ),
-        m("span.is-small", {style: {display: "flex", alignItems: "flex-end", flexGrow: "2", flexDirection: "column"}}, [
-          this.editMode ? 
-            m("span", {style: {display: "flex", alignItems: "center"}}, [
-            m("input", {
-              value: this.editedContactLabel,
-              oninput: (e: Event) => this.editedContactLabel = (e.target as HTMLInputElement).value,
-                style: {
-                border: "none",
-                background: "transparent",
-                outline: "none",
-                paddingLeft: "12px",
-                paddingRight: "12px",
-                width: "100%",
-                textAlign: "right",
-                fontSize: "1em",
-              },
-              oncreate: (vnode: m.VnodeDOM) => {
-                const input = vnode.dom as HTMLInputElement
-                input.focus()
-                input.setSelectionRange(this.editedContactLabel.length, this.editedContactLabel.length)
-              },
-              onkeydown: (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  this.editMode = false
-                }
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  this.updateLabel(this.editedContactLabel)
-                  this.editMode = false
-                }
-              }
-            }),
-            m("button.button.is-white.is-small", {
-              onclick: () => {
-                this.editMode = false
-              },
-              style: {marginRight: ".5em"}
-            }, [
-              m("span.icon", [m("i.fas.fa-cancel")])
-            ]),
-            m("button.button.is-white.is-small", {
-              onclick: () => {
-                this.updateLabel(this.editedContactLabel)
-                this.editMode = false
-              },
-              style: {marginRight: ".5em"}
-            }, [
-              m("span.icon", [m("i.fas.fa-save")])
-            ]),
-          ]) : m("span", {style: {display: "flex", alignItems: "center"}}, [
-            m("span", {
-              style: {
-                marginBottom: "0",
-                textAlign: "right",
-                marginRight: ".5em",
-                width: "100%",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                overflow: "hidden"
-              }
-            }, this.contact.label || this.contact.did),
-            m("button.button.is-white.is-small", {
-              onclick: () => {
-                this.editMode = true
-                this.editedContactLabel = this.contact.label
-              },
-              style: {marginRight: ".5em"}
-            }, [
-              m("span.icon", [m("i.fas.fa-edit")])
-            ]),
-          ]),
-        ]),
+        m(
+          "span.is-small",
+          {
+            style: {
+              display: "flex",
+              alignItems: "flex-end",
+              flexGrow: "2",
+              flexDirection: "column",
+            },
+          },
+          [
+            this.editMode
+              ? m(
+                  "span",
+                  { style: { display: "flex", alignItems: "center" } },
+                  [
+                    m("input", {
+                      value: this.editedContactLabel,
+                      oninput: (e: Event) =>
+                        (this.editedContactLabel = (
+                          e.target as HTMLInputElement
+                        ).value),
+                      style: {
+                        border: "none",
+                        background: "transparent",
+                        outline: "none",
+                        paddingLeft: "12px",
+                        paddingRight: "12px",
+                        width: "100%",
+                        textAlign: "right",
+                        fontSize: "1em",
+                      },
+                      oncreate: (vnode: m.VnodeDOM) => {
+                        const input = vnode.dom as HTMLInputElement
+                        input.focus()
+                        input.setSelectionRange(
+                          this.editedContactLabel.length,
+                          this.editedContactLabel.length
+                        )
+                      },
+                      onkeydown: (e: KeyboardEvent) => {
+                        if (e.key === "Escape") {
+                          e.preventDefault()
+                          this.editMode = false
+                        }
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          this.updateLabel(this.editedContactLabel)
+                          this.editMode = false
+                        }
+                      },
+                    }),
+                    m(
+                      "button.button.is-white.is-small",
+                      {
+                        onclick: () => {
+                          this.editMode = false
+                        },
+                        style: { marginRight: ".5em" },
+                      },
+                      [m("span.icon", [m("i.fas.fa-cancel")])]
+                    ),
+                    m(
+                      "button.button.is-white.is-small",
+                      {
+                        onclick: () => {
+                          this.updateLabel(this.editedContactLabel)
+                          this.editMode = false
+                        },
+                        style: { marginRight: ".5em" },
+                      },
+                      [m("span.icon", [m("i.fas.fa-save")])]
+                    ),
+                  ]
+                )
+              : m(
+                  "span",
+                  { style: { display: "flex", alignItems: "center" } },
+                  [
+                    m(
+                      "span",
+                      {
+                        style: {
+                          marginBottom: "0",
+                          textAlign: "right",
+                          marginRight: ".5em",
+                          width: "100%",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                        },
+                      },
+                      this.contact.label || this.contact.did
+                    ),
+                    m(
+                      "button.button.is-white.is-small",
+                      {
+                        onclick: () => {
+                          this.editMode = true
+                          this.editedContactLabel = this.contact.label
+                        },
+                        style: { marginRight: ".5em" },
+                      },
+                      [m("span.icon", [m("i.fas.fa-edit")])]
+                    ),
+                  ]
+                ),
+          ]
+        ),
       ]),
       m(
         ".messages",
@@ -440,29 +524,33 @@ class MessageHistoryComponent
             },
             onscroll: (e: Event) => this.handleScroll(e),
           },
-            this.messages.map((message) => this.viewMessage(message))
+          this.messages.map(message => this.viewMessage(message))
         )
       ),
       m("div.message-controls", { style: "margin-top: 1rem;" }, [
         m("div.field.has-addons", [
           m(
             "div.control.is-expanded",
-            m(
-              "input.input[type=text][placeholder='Type your message...']",
-              {
-                value: this.content,
-                oninput: (e: Event) => {
-                  this.content = (e.target as HTMLInputElement).value
-                },
-                onkeypress: (e: KeyboardEvent) => {
-                  if (e.key === "Enter") {
-                    this.sendClicked()
-                  }
+            m("input.input[type=text][placeholder='Type your message...']", {
+              value: this.content,
+              oninput: (e: Event) => {
+                this.content = (e.target as HTMLInputElement).value
+              },
+              onkeypress: (e: KeyboardEvent) => {
+                if (e.key === "Enter") {
+                  this.sendClicked()
                 }
-              }
+              },
+            })
+          ),
+          m(
+            "div.control",
+            m(
+              "button.button.is-info",
+              { onclick: this.sendClicked.bind(this) },
+              "Send"
             )
           ),
-          m("div.control", m("button.button.is-info", {onclick: this.sendClicked.bind(this)}, "Send")),
         ]),
       ]),
     ])

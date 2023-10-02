@@ -18,7 +18,7 @@ const IMPLEMENTED_PROTOCOLS = [
   "https://didcomm.org/trust-ping/2.0",
   "https://didcomm.org/basicmessage/2.0",
   "https://didcomm.org/user-profile/1.0",
-];
+]
 
 export class Agent {
   public profile: Profile
@@ -46,7 +46,10 @@ export class Agent {
         logger.log(e.data.payload.message)
         break
       case "init":
-        this.postMessage({type: "establishMediation", payload: {mediatorDid: DEFAULT_MEDIATOR}})
+        this.postMessage({
+          type: "establishMediation",
+          payload: { mediatorDid: DEFAULT_MEDIATOR },
+        })
         break
       case "didGenerated":
         this.onDidGenerated(e.data.payload)
@@ -71,7 +74,10 @@ export class Agent {
     logger.log("DID Generated:", did)
     eventbus.emit("didGenerated", did)
 
-    this.postMessage({type: "connect", payload: {mediatorDid: DEFAULT_MEDIATOR}})
+    this.postMessage({
+      type: "connect",
+      payload: { mediatorDid: DEFAULT_MEDIATOR },
+    })
   }
 
   set ondid(callback: (did: string) => void) {
@@ -79,77 +85,81 @@ export class Agent {
   }
 
   private handleDiscoverFeatures(message: IMessage) {
-    const regexEscape = (s: string) => s.replace(/([.*+?$^=!:{}()|\[\]\/\\])/g, "\\$1");
-    const createRegex = (query: string) => (new RegExp(`^${query.split("*").map(regexEscape).join(".*")}$`));
-    let protocolResponse: object[] = [];
+    const regexEscape = (s: string) =>
+      s.replace(/([.*+?$^=!:{}()|\[\]\/\\])/g, "\\$1")
+    const createRegex = (query: string) =>
+      new RegExp(`^${query.split("*").map(regexEscape).join(".*")}$`)
+    let protocolResponse: object[] = []
 
     // Loop through all queries, then all implemented protocols and build up a
     // list of supported protocols that match the user's request
-    for(let query of message.body.queries) {
-
+    for (let query of message.body.queries) {
       // Rudimentary implementation, ignoring all except protocol requests
-      if(query["feature-type"] != "protocol")
-        continue
+      if (query["feature-type"] != "protocol") continue
 
-      for(let protocol of IMPLEMENTED_PROTOCOLS) {
-        if(createRegex(query["match"]).test(protocol)) {
+      for (let protocol of IMPLEMENTED_PROTOCOLS) {
+        if (createRegex(query["match"]).test(protocol)) {
           protocolResponse.push({
             "feature-type": "protocol",
-            "id": protocol,
+            id: protocol,
           })
         }
       }
     }
     const response = {
-      "type": "https://didcomm.org/discover-features/2.0/disclose",
-      "thid": message.id,
-      "body": {
-        "disclosures": protocolResponse
-      }
+      type: "https://didcomm.org/discover-features/2.0/disclose",
+      thid: message.id,
+      body: {
+        disclosures: protocolResponse,
+      },
     }
     return response
   }
 
   private handleCoreProtocolMessage(message: AgentMessage) {
     const msg = message.message
-    switch(msg.type) {
+    switch (msg.type) {
       case "https://didcomm.org/trust-ping/2.0/ping":
-        if(msg.body?.response_requested !== false) {
+        if (msg.body?.response_requested !== false) {
           this.sendMessage(msg.from, {
-            "type": "https://didcomm.org/trust-ping/2.0/ping-response",
-            "thid": msg.id,
+            type: "https://didcomm.org/trust-ping/2.0/ping-response",
+            thid: msg.id,
           })
         }
-        break;
+        break
       case "https://didcomm.org/discover-features/2.0/queries":
         const discloseMessage = this.handleDiscoverFeatures(msg)
         this.sendMessage(msg.from, discloseMessage)
-        break;
+        break
     }
   }
 
   private onMessageReceived(message: IMessage) {
-    const from = message.from == this.profile.did ? this.profile as Contact : ContactService.getContact(message.from)
-    const to = message.to[0] == this.profile.did ? this.profile as Contact : ContactService.getContact(message.to[0])
+    const from =
+      message.from == this.profile.did
+        ? (this.profile as Contact)
+        : ContactService.getContact(message.from)
+    const to =
+      message.to[0] == this.profile.did
+        ? (this.profile as Contact)
+        : ContactService.getContact(message.to[0])
 
-    if(ContactService.getContact(message.from)) {
-      let fromName = message.from;
-      if(from) {
-        fromName = from.label || from.did;
+    if (ContactService.getContact(message.from)) {
+      let fromName = message.from
+      if (from) {
+        fromName = from.label || from.did
       }
-      ContactService.addMessage(
-        message.from, {
-          sender: fromName,
-          receiver: to.label || to.did,
-          timestamp: new Date(),
-          content: message.body.content,
-          type: message.type,
-          raw: message,
-        }
-      )
+      ContactService.addMessage(message.from, {
+        sender: fromName,
+        receiver: to.label || to.did,
+        timestamp: new Date(),
+        content: message.body.content,
+        type: message.type,
+        raw: message,
+      })
     }
-    eventbus.emit("messageReceived", {sender: from, receiver: to, message})
-    eventbus.emit(message.type, {sender: from, receiver: to, message})
+    eventbus.emit("messageReceived", { sender: from, receiver: to, message })
+    eventbus.emit(message.type, { sender: from, receiver: to, message })
   }
 
   public onMessage(type: string, callback: (message: AgentMessage) => void) {
@@ -157,11 +167,12 @@ export class Agent {
   }
 
   public onAnyMessage(callback: (message: AgentMessage) => void) {
-    return eventbus.on("messageReceived", callback);
+    return eventbus.on("messageReceived", callback)
   }
 
   public async sendMessage(to: Contact | DID, message: DIDCommMessage) {
-    const contact: Contact = typeof to == "string" ? ContactService.getContact(to) : to
+    const contact: Contact =
+      typeof to == "string" ? ContactService.getContact(to) : to
     const internalMessage = {
       sender: this.profile.label,
       receiver: contact.label || contact.did,
@@ -170,13 +181,19 @@ export class Agent {
       content: message.body?.content ?? "",
       raw: message,
     }
-    this.postMessage({type: "sendMessage", payload: {to: contact.did, message}})
+    this.postMessage({
+      type: "sendMessage",
+      payload: { to: contact.did, message },
+    })
     internalMessage.raw.from = this.profile.did
     ContactService.addMessage(contact.did, internalMessage)
   }
 
   public async refreshMessages() {
-    this.postMessage({type: "pickupStatus", payload: {mediatorDid: DEFAULT_MEDIATOR}})
+    this.postMessage({
+      type: "pickupStatus",
+      payload: { mediatorDid: DEFAULT_MEDIATOR },
+    })
   }
 
   public async sendProfile(contact: Contact) {
@@ -185,8 +202,8 @@ export class Agent {
       body: {
         profile: {
           displayName: this.profile.label,
-        }
-      }
+        },
+      },
     }
     await this.sendMessage(contact, message as IMessage)
   }
@@ -196,7 +213,7 @@ export class Agent {
       type: "https://didcomm.org/user-profile/1.0/request-profile",
       body: {
         query: ["displayName"],
-      }
+      },
     }
     await this.sendMessage(contact, message as IMessage)
   }
@@ -205,17 +222,22 @@ export class Agent {
     const message = {
       type: "https://didcomm.org/discover-features/2.0/queries",
       body: {
-        queries: [{
-          "feature-type": "protocol",
-          "match": "https://didcomm.org/*",
-        }]
-      }
+        queries: [
+          {
+            "feature-type": "protocol",
+            match: "https://didcomm.org/*",
+          },
+        ],
+      },
     }
     await this.sendMessage(contact, message as IMessage)
   }
 
   public async connect() {
-    this.worker.postMessage({type: "connect", payload: {mediatorDid: DEFAULT_MEDIATOR}})
+    this.worker.postMessage({
+      type: "connect",
+      payload: { mediatorDid: DEFAULT_MEDIATOR },
+    })
   }
 
   set onconnect(callback: () => void) {
@@ -223,7 +245,7 @@ export class Agent {
   }
 
   public async disconnect() {
-    this.worker.postMessage({type: "disconnect"})
+    this.worker.postMessage({ type: "disconnect" })
   }
 
   set ondisconnect(callback: () => void) {

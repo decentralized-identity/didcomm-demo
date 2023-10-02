@@ -1,4 +1,4 @@
-import EventBus from './eventbus'
+import EventBus from "./eventbus"
 
 export enum LogTopic {
   LOG = "log",
@@ -26,7 +26,7 @@ export class LoggerService {
     const record = {
       message: messages.join(" "),
       timestamp: new Date(),
-      topic: LogTopic.LOG
+      topic: LogTopic.LOG,
     }
     this.records.push(record)
     EventBus.emit(LogTopic.LOG, record)
@@ -60,12 +60,24 @@ export class LoggerService {
     EventBus.off(new RegExp(topic), callback)
   }
 
-  subscribeContact(contact: string, callback: (record: Record) => Promise<void>) {
-    EventBus.on(new RegExp(LogTopic.LOG_MESSAGE_CONTACT + `.${contact}`), callback)
+  subscribeContact(
+    contact: string,
+    callback: (record: Record) => Promise<void>
+  ) {
+    EventBus.on(
+      new RegExp(LogTopic.LOG_MESSAGE_CONTACT + `.${contact}`),
+      callback
+    )
   }
 
-  unsubscribeContact(contact: string, callback: (record: Record) => Promise<void>) {
-    EventBus.off(new RegExp(LogTopic.LOG_MESSAGE_CONTACT + `.${contact}`), callback)
+  unsubscribeContact(
+    contact: string,
+    callback: (record: Record) => Promise<void>
+  ) {
+    EventBus.off(
+      new RegExp(LogTopic.LOG_MESSAGE_CONTACT + `.${contact}`),
+      callback
+    )
   }
 }
 

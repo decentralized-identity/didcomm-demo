@@ -1,8 +1,8 @@
 type Callback = (...args: any[]) => Promise<void> | void
 
 interface PatternListeners {
-  pattern: RegExp;
-  listeners: Callback[];
+  pattern: RegExp
+  listeners: Callback[]
 }
 
 class EventListenerHandle {
@@ -21,16 +21,16 @@ class EventListenerHandle {
 }
 
 export class EventBus {
-  private listeners: PatternListeners[] = [];
-  private static instance: EventBus;
+  private listeners: PatternListeners[] = []
+  private static instance: EventBus
 
   protected constructor() {}
 
   static getInstance(): EventBus {
     if (!EventBus.instance) {
-      EventBus.instance = new EventBus();
+      EventBus.instance = new EventBus()
     }
-    return EventBus.instance;
+    return EventBus.instance
   }
 
   /**
@@ -41,18 +41,18 @@ export class EventBus {
    */
   on(pattern: RegExp | string, listener: Callback): EventListenerHandle {
     if (typeof pattern === "string") {
-      pattern = new RegExp(pattern);
+      pattern = new RegExp(pattern)
     }
-    let found = false;
+    let found = false
     for (const entry of this.listeners) {
       if (entry.pattern.toString() === pattern.toString()) {
-        entry.listeners.push(listener);
-        found = true;
-        break;
+        entry.listeners.push(listener)
+        found = true
+        break
       }
     }
     if (!found) {
-      this.listeners.push({ pattern: pattern, listeners: [listener] });
+      this.listeners.push({ pattern: pattern, listeners: [listener] })
     }
     return new EventListenerHandle(this, pattern, listener)
   }
@@ -60,18 +60,18 @@ export class EventBus {
   off(pattern: RegExp, listener: Callback): void {
     this.listeners = this.listeners.filter(entry => {
       if (entry.pattern.toString() === pattern.toString()) {
-        entry.listeners = entry.listeners.filter(l => l !== listener);
-        return entry.listeners.length > 0;
+        entry.listeners = entry.listeners.filter(l => l !== listener)
+        return entry.listeners.length > 0
       }
-      return true;
-    });
+      return true
+    })
   }
 
   async emit(event: string, ...args: any[]): Promise<void> {
     for (const entry of this.listeners) {
       if (entry.pattern.test(event)) {
         for (const listener of entry.listeners) {
-          const result = listener(...args);
+          const result = listener(...args)
           if (result instanceof Promise) {
             await result
           }
@@ -119,4 +119,4 @@ export class ScopedEventBus extends EventBus {
   }
 }
 
-export default EventBus.getInstance();
+export default EventBus.getInstance()
