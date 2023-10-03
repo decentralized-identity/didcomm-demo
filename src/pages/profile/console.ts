@@ -136,7 +136,7 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
   }
 
   onremove() {
-    this.subscription.close()
+    this.subscription?.close()
   }
 
   onupdate(vnode: m.VnodeDOM<ConsoleAttributes>) {
