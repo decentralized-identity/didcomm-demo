@@ -3,7 +3,7 @@ import logger from "./logger"
 import { Profile } from "./profile"
 import { default as ContactService, Contact, Message } from "./contacts"
 import { WorkerCommand, WorkerMessage } from "./workerTypes"
-import eventbus from "./eventbus"
+import eventbus, { EventListenerHandle } from "./eventbus"
 import { IMessage } from "didcomm"
 import { DIDCommMessage, DID } from "./didcomm"
 
@@ -162,11 +162,11 @@ export class Agent {
     eventbus.emit(message.type, { sender: from, receiver: to, message })
   }
 
-  public onMessage(type: string, callback: (message: AgentMessage) => void) {
+  public onMessage(type: string, callback: (message: AgentMessage) => void): EventListenerHandle {
     return eventbus.on(type, callback)
   }
 
-  public onAnyMessage(callback: (message: AgentMessage) => void) {
+  public onAnyMessage(callback: (message: AgentMessage) => void): EventListenerHandle {
     return eventbus.on("messageReceived", callback)
   }
 

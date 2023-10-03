@@ -5,7 +5,7 @@ interface PatternListeners {
   listeners: Callback[]
 }
 
-class EventListenerHandle {
+export class EventListenerHandle {
   eventbus: EventBus
   pattern: RegExp
   listener: Callback
