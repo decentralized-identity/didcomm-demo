@@ -26,8 +26,10 @@ const purposeCodeList: Record<string, string> = {
 
 export default class DIDPeer {
   static keyToMultibase(key: Uint8Array, prefix: multicodec.CodecName): string {
-    const buffer = multibase
-      .encode("base58btc", multicodec.addPrefix(prefix, key))
+    const buffer = multibase.encode(
+      "base58btc",
+      multicodec.addPrefix(prefix, key)
+    )
     return String.fromCharCode(...buffer)
   }
 
@@ -79,7 +81,9 @@ export default class DIDPeer {
     })
 
     // Encode service block
-    let abbreviatedService = JSON.stringify(DIDPeer.abbreviateCommonStrings(serviceBlock))
+    let abbreviatedService = JSON.stringify(
+      DIDPeer.abbreviateCommonStrings(serviceBlock)
+    )
     abbreviatedService = abbreviatedService.replace(/\s+/g, "")
     const encodedService = DIDPeer.base64UrlEncode(abbreviatedService)
     const finalService = "." + purposeCodeList["Service"] + encodedService
@@ -110,11 +114,13 @@ export default class DIDPeer {
     const expanded = Object.fromEntries(
       Object.entries(input).map(([key, value]) => {
         const expandedKey = reverseCommonStringAbbreviations[key] || key
-        const expandedValue = typeof value === 'string'
-          ? (reverseCommonStringAbbreviations[value] || value)
-          : value
+        const expandedValue =
+          typeof value === "string"
+            ? reverseCommonStringAbbreviations[value] || value
+            : value
         return [expandedKey, expandedValue]
-      }))
+      })
+    )
     return expanded
   }
 
@@ -122,11 +128,13 @@ export default class DIDPeer {
     const abbreviated = Object.fromEntries(
       Object.entries(input).map(([key, value]) => {
         const abbreviatedKey = commonStringAbbreviations[key] || key
-        const abbreviatedValue = typeof value === 'string'
-          ? (commonStringAbbreviations[value] || value)
-          : value
+        const abbreviatedValue =
+          typeof value === "string"
+            ? commonStringAbbreviations[value] || value
+            : value
         return [abbreviatedKey, abbreviatedValue]
-      }))
+      })
+    )
     return abbreviated
   }
 
@@ -158,7 +166,10 @@ export default class DIDPeer {
           if (!doc.verificationMethod) {
             doc.verificationMethod = []
           }
-          let ident = `${did}#${DIDPeer.keyToIdent(decodedSigningKey, "ed25519-pub")}`
+          let ident = `${did}#${DIDPeer.keyToIdent(
+            decodedSigningKey,
+            "ed25519-pub"
+          )}`
           doc.verificationMethod.push({
             id: ident,
             controller: did,
@@ -200,7 +211,7 @@ export default class DIDPeer {
         }
 
         case purposeCodeList["Service"]: {
-          const decodedService = DIDPeer.base64UrlDecode(encodedValue);
+          const decodedService = DIDPeer.base64UrlDecode(encodedValue)
           let services = JSON.parse(decodedService)
           if (!Array.isArray(services)) {
             services = [services]
@@ -216,8 +227,8 @@ export default class DIDPeer {
             })
             .map(DIDPeer.transformOldServiceStyleToNew)
 
-          doc.service = services;
-          break;
+          doc.service = services
+          break
         }
 
         default:

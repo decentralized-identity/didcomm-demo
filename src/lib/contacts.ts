@@ -1,3 +1,5 @@
+import eventbus from "./eventbus"
+
 export interface Contact {
   did: string
   label?: string
@@ -12,16 +14,26 @@ export interface Message {
   raw?: any
 }
 
-export interface ContactService {
-  getContacts(): Contact[]
-  getMessageHistory(did: string): Message[]
-  addContact(contact: Contact): void
-  getContact(did: string): Contact
-  saveMessageHistory(did: string, messages: Message[]): void
-  addMessage(did: string, message: Message): void
+export abstract class ContactService {
+  _selectedContact?: Contact
+  abstract getContacts(): Contact[]
+  abstract getMessageHistory(did: string): Message[]
+  abstract addContact(contact: Contact): void
+  abstract getContact(did: string): Contact
+  abstract saveMessageHistory(did: string, messages: Message[]): void
+  abstract addMessage(did: string, message: Message): void
+  selectContact(contact: Contact): void {
+    this._selectedContact = contact
+  }
+  get selectedContact(): Contact {
+    return this._selectedContact
+  }
+  onContactSelected(callback: (contact: Contact) => void): void {
+    eventbus.emit("contact-selected", callback)
+  }
 }
 
-export class NullContactService implements ContactService {
+export class NullContactService extends ContactService {
   contacts: Contact[] = [
     { label: "Alice", did: "did:example:alice" },
     { label: "Bob", did: "did:example:bob" },
@@ -118,11 +130,11 @@ export class NullContactService implements ContactService {
     this.contacts.push(contact)
   }
 
-  saveMessageHistory(did: string, messages: Message[]): void { }
-  addMessage(did: string, message: Message): void { }
+  saveMessageHistory(did: string, messages: Message[]): void {}
+  addMessage(did: string, message: Message): void {}
 }
 
-export class EphemeralContactService implements ContactService {
+export class EphemeralContactService extends ContactService {
   private contacts: Record<string, Contact> = {}
   private messages: Record<string, Message[]> = {}
 
@@ -139,11 +151,11 @@ export class EphemeralContactService implements ContactService {
   }
 
   addContact(contact: Contact): void {
-      this.contacts[contact.did] = contact
+    this.contacts[contact.did] = contact
   }
 
   saveMessageHistory(did: string, messages: Message[]): void {
-      this.messages[did] = messages
+    this.messages[did] = messages
   }
 
   addMessage(did: string, message: Message): void {

@@ -3,9 +3,19 @@ import {
   edwardsToMontgomeryPub,
   edwardsToMontgomeryPriv,
 } from "@noble/curves/ed25519"
-import { DIDResolver, DIDDoc, SecretsResolver, Secret, Message, UnpackMetadata, PackEncryptedMetadata, MessagingServiceMetadata, IMessage } from "didcomm"
+import {
+  DIDResolver,
+  DIDDoc,
+  SecretsResolver,
+  Secret,
+  Message,
+  UnpackMetadata,
+  PackEncryptedMetadata,
+  MessagingServiceMetadata,
+  IMessage,
+} from "didcomm"
 import DIDPeer from "./peer2"
-import {v4 as uuidv4} from "uuid"
+import { v4 as uuidv4 } from "uuid"
 import logger from "./logger"
 
 export type DID = string
@@ -19,7 +29,7 @@ function x25519ToSecret(
   const secretEnc: Secret = {
     id: `${did}#${encIdent}`,
     type: "X25519KeyAgreementKey2020",
-    privateKeyMultibase: DIDPeer.keyToMultibase(x25519KeyPriv, "x25519-priv")
+    privateKeyMultibase: DIDPeer.keyToMultibase(x25519KeyPriv, "x25519-priv"),
   }
   return secretEnc
 }
@@ -33,7 +43,7 @@ function ed25519ToSecret(
   const secretVer: Secret = {
     id: `${did}#${verIdent}`,
     type: "Ed25519VerificationKey2020",
-    privateKeyMultibase: DIDPeer.keyToMultibase(ed25519KeyPriv, "ed25519-priv")
+    privateKeyMultibase: DIDPeer.keyToMultibase(ed25519KeyPriv, "ed25519-priv"),
   }
   return secretVer
 }
@@ -147,45 +157,48 @@ export class LocalSecretsResolver implements SecretsManager {
 }
 
 export class EphemeralSecretsResolver implements SecretsManager {
-  private secrets: Record<string, Secret> = {};
+  private secrets: Record<string, Secret> = {}
 
   private static createError(message: string, name: string): Error {
-    const e = new Error(message);
-    e.name = name;
-    return e;
+    const e = new Error(message)
+    e.name = name
+    return e
   }
 
   async get_secret(secret_id: string): Promise<Secret | null> {
     try {
-      return this.secrets[secret_id] || null;
+      return this.secrets[secret_id] || null
     } catch (error) {
       throw EphemeralSecretsResolver.createError(
         "Unable to fetch secret from memory",
         "DIDCommMemoryError"
-      );
+      )
     }
   }
 
   async find_secrets(secret_ids: Array<string>): Promise<Array<string>> {
     try {
-      return secret_ids.map(id => this.secrets[id]).filter(secret => !!secret).map(secret => secret.id); // Filter out undefined or null values
+      return secret_ids
+        .map(id => this.secrets[id])
+        .filter(secret => !!secret)
+        .map(secret => secret.id) // Filter out undefined or null values
     } catch (error) {
       throw EphemeralSecretsResolver.createError(
         "Unable to fetch secrets from memory",
         "DIDCommMemoryError"
-      );
+      )
     }
   }
 
   // Helper method to store a secret in memory
   store_secret(secret: Secret): void {
     try {
-      this.secrets[secret.id] = secret;
+      this.secrets[secret.id] = secret
     } catch (error) {
       throw EphemeralSecretsResolver.createError(
         "Unable to store secret in memory",
         "DIDCommMemoryError"
-      );
+      )
     }
   }
 }
@@ -229,7 +242,7 @@ export class DIDComm {
     if (!doc.service) {
       throw new Error("No service found")
     }
-    
+
     const services = doc.service
       .filter(s => s.type === "DIDCommMessaging")
       .filter(s => s.serviceEndpoint.accept.includes("didcomm/v2"))
@@ -243,9 +256,10 @@ export class DIDComm {
    */
   async wsEndpoint(did: DID): Promise<MessagingServiceMetadata> {
     const services = await this.resolveDIDCommServices(did)
-    
-    const service = services
-      .filter((s: any) => s.serviceEndpoint.uri.startsWith("ws"))[0]
+
+    const service = services.filter((s: any) =>
+      s.serviceEndpoint.uri.startsWith("ws")
+    )[0]
     return {
       id: service.id,
       service_endpoint: service.serviceEndpoint.uri,
@@ -259,15 +273,20 @@ export class DIDComm {
    */
   async httpEndpoint(did: DID): Promise<MessagingServiceMetadata> {
     const services = await this.resolveDIDCommServices(did)
-    const service = services
-      .filter((s: any) => s.serviceEndpoint.uri.startsWith("http"))[0]
+    const service = services.filter((s: any) =>
+      s.serviceEndpoint.uri.startsWith("http")
+    )[0]
     return {
       id: service.id,
       service_endpoint: service.serviceEndpoint.uri,
     }
   }
 
-  async prepareMessage(to: DID, from: DID, message: DIDCommMessage): Promise<[IMessage, string, PackEncryptedMetadata]> {
+  async prepareMessage(
+    to: DID,
+    from: DID,
+    message: DIDCommMessage
+  ): Promise<[IMessage, string, PackEncryptedMetadata]> {
     const msg = new Message({
       id: uuidv4(),
       typ: "application/didcomm-plain+json",
@@ -278,7 +297,12 @@ export class DIDComm {
       ...message,
     })
     const [packed, meta] = await msg.pack_encrypted(
-      to, from, null, this.resolver, this.secretsResolver, {forward: true}
+      to,
+      from,
+      null,
+      this.resolver,
+      this.secretsResolver,
+      { forward: true }
     )
     if (!meta.messaging_service) {
       meta.messaging_service = await this.httpEndpoint(to)
@@ -288,13 +312,24 @@ export class DIDComm {
 
   async unpackMessage(message: string): Promise<[Message, UnpackMetadata]> {
     return await Message.unpack(
-      message, this.resolver, this.secretsResolver, {}
+      message,
+      this.resolver,
+      this.secretsResolver,
+      {}
     )
   }
 
-  async sendMessageAndExpectReply(to: DID, from: DID, message: DIDCommMessage): Promise<[Message, UnpackMetadata]> {
-    const [plaintext, packed, meta]= await this.prepareMessage(to, from, message)
-    logger.sentMessage({to, from, message: plaintext})
+  async sendMessageAndExpectReply(
+    to: DID,
+    from: DID,
+    message: DIDCommMessage
+  ): Promise<[Message, UnpackMetadata]> {
+    const [plaintext, packed, meta] = await this.prepareMessage(
+      to,
+      from,
+      message
+    )
+    logger.sentMessage({ to, from, message: plaintext })
     if (!meta.messaging_service) {
       throw new Error("No messaging service found")
     }
@@ -303,7 +338,7 @@ export class DIDComm {
       const response = await fetch(meta.messaging_service.service_endpoint, {
         method: "POST",
         headers: {
-          "Content-Type": "application/didcomm-encrypted+json"
+          "Content-Type": "application/didcomm-encrypted+json",
         },
         body: packed,
       })
@@ -317,7 +352,7 @@ export class DIDComm {
       const packedResponse = await response.text()
       const unpacked = await this.unpackMessage(packedResponse)
 
-      logger.recvMessage({to, from, message: unpacked[0].as_value()})
+      logger.recvMessage({ to, from, message: unpacked[0].as_value() })
       return unpacked
     } catch (error) {
       console.error(error)
@@ -325,8 +360,12 @@ export class DIDComm {
   }
 
   async sendMessage(to: DID, from: DID, message: DIDCommMessage) {
-    const [plaintext, packed, meta]= await this.prepareMessage(to, from, message)
-    logger.sentMessage({to, from, message: plaintext})
+    const [plaintext, packed, meta] = await this.prepareMessage(
+      to,
+      from,
+      message
+    )
+    logger.sentMessage({ to, from, message: plaintext })
     if (!meta.messaging_service) {
       throw new Error("No messaging service found")
     }
@@ -335,7 +374,7 @@ export class DIDComm {
       const response = await fetch(meta.messaging_service.service_endpoint, {
         method: "POST",
         headers: {
-          "Content-Type": "application/didcomm-encrypted+json"
+          "Content-Type": "application/didcomm-encrypted+json",
         },
         body: packed,
       })
@@ -353,11 +392,18 @@ export class DIDComm {
   }
 
   async receiveMessage(message: string): Promise<[Message, UnpackMetadata]> {
-      const unpacked = await Message.unpack(
-        message, this.resolver, this.secretsResolver, {}
-      )
-      const plaintext = unpacked[0].as_value()
-      logger.recvMessage({to: plaintext.to[0], from: plaintext.from, message: plaintext})
-      return unpacked
+    const unpacked = await Message.unpack(
+      message,
+      this.resolver,
+      this.secretsResolver,
+      {}
+    )
+    const plaintext = unpacked[0].as_value()
+    logger.recvMessage({
+      to: plaintext.to[0],
+      from: plaintext.from,
+      message: plaintext,
+    })
+    return unpacked
   }
 }
