@@ -237,6 +237,7 @@ class MessageHistoryComponent
   content: string = ""
   contact: Contact
   private editMode: boolean = false
+  private contactHover: boolean = false
   private editedContactLabel: string = ""
   private autoScroll: boolean = true
   private eventbus: ScopedEventBus
@@ -409,6 +410,8 @@ class MessageHistoryComponent
               alignItems: "flex-end",
               flexGrow: "2",
               flexDirection: "column",
+              alignSelf: "flex-start",
+              position: "relative",
             },
           },
           [
@@ -478,7 +481,14 @@ class MessageHistoryComponent
                 )
               : m(
                   "span",
-                  { style: { display: "flex", alignItems: "center" } },
+                  {
+                    style: {
+                      display: "flex",
+                      alignItems: "center",
+                      position: "absolute",
+                      width: "100%",
+                    },
+                  },
                   [
                     m(
                       "span",
@@ -492,8 +502,16 @@ class MessageHistoryComponent
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                         },
+                        onmouseover: () => {
+                          this.contactHover = true
+                        },
+                        onmouseout: () => {
+                          this.contactHover = false
+                        },
                       },
-                      this.contact.label || this.contact.did
+                      this.contactHover
+                        ? this.contact.did
+                        : this.contact.label || this.contact.did
                     ),
                     m(
                       "button.button.is-white.is-small",
