@@ -22,44 +22,11 @@ class ContactListComponent
   oninit() {
     this.contacts = ContactService.getContacts()
     this.eventbus = eventbus.scoped()
-    this.eventbus.collect(
-      agent.onAnyMessage(this.onMessageReceived.bind(this)),
-      agent.onMessage(
-        "https://didcomm.org/user-profile/1.0/profile",
-        this.onProfileUpdate.bind(this)
-      ),
-      agent.onMessage(
-        "https://didcomm.org/user-profile/1.0/request-profile",
-        this.onProfileRequest.bind(this)
-      )
-    )
+    this.eventbus.collect(agent.onAnyMessage(this.onMessageReceived.bind(this)))
   }
 
   onremove() {
     this.eventbus.close()
-  }
-
-  async onProfileUpdate(message: AgentMessage) {
-    let contact = ContactService.getContact(message.message.from)
-    if (!contact) {
-      return
-    }
-
-    let label = message.message.body?.profile?.displayName
-    if (!label) {
-      return
-    }
-
-    contact.label = label
-    ContactService.addContact(contact)
-  }
-
-  async onProfileRequest(message: AgentMessage) {
-    let contact = ContactService.getContact(message.message.from)
-    if (!contact) {
-      return
-    }
-    await agent.sendProfile(contact)
   }
 
   async onMessageReceived(message: AgentMessage) {
