@@ -385,7 +385,13 @@ class MessageHistoryComponent
                 "li",
                 m("span", [
                   `${disclosure["feature-type"]}: `,
-                  m("a", { href: disclosure.id }, disclosure.id),
+                  m("a", { href: disclosure.id, target: "_blank" }, [
+                    disclosure.id,
+                    m(
+                      "span.icon",
+                      m(`i.fas.fa-arrow-up-right-from-square.is-small`)
+                    ),
+                  ]),
                 ])
               )
             )
@@ -400,7 +406,10 @@ class MessageHistoryComponent
             class: "unhandled",
             inspectable: true,
           },
-          [m("a", { href: message.type }, message.type)]
+          m("a", { href: message.type, target: "_blank" }, [
+            message.type,
+            m("span.icon", m(`i.fas.fa-arrow-up-right-from-square.is-small`)),
+          ])
         )
     }
   }
