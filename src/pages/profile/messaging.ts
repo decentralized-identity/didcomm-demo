@@ -315,6 +315,10 @@ class MessageHistoryComponent
       })
   }
 
+  private messageTypeToProtocol(messageType: string) {
+    return messageType.slice(0, messageType.lastIndexOf("/"))
+  }
+
   viewMessage(message: Message) {
     switch (message.type) {
       case "https://didcomm.org/basicmessage/2.0/message":
@@ -385,13 +389,20 @@ class MessageHistoryComponent
                 "li",
                 m("span", [
                   `${disclosure["feature-type"]}: `,
-                  m("a", { href: disclosure.id, target: "_blank" }, [
-                    disclosure.id,
-                    m(
-                      "span.icon",
-                      m(`i.fas.fa-arrow-up-right-from-square.is-small`)
-                    ),
-                  ]),
+                  m(
+                    "a",
+                    {
+                      href: this.messageTypeToProtocol(disclosure.id),
+                      target: "_blank",
+                    },
+                    [
+                      disclosure.id,
+                      m(
+                        "span.icon",
+                        m(`i.fas.fa-arrow-up-right-from-square.is-small`)
+                      ),
+                    ]
+                  ),
                 ])
               )
             )
