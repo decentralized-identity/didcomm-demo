@@ -28,6 +28,14 @@ export class Agent {
     this.worker = new Worker(new URL("./worker.ts", import.meta.url))
     this.worker.onmessage = this.handleWorkerMessage.bind(this)
     this.onAnyMessage(this.handleCoreProtocolMessage.bind(this))
+    this.onMessage(
+      "https://didcomm.org/user-profile/1.0/profile",
+      this.onProfileUpdate.bind(this)
+    )
+    this.onMessage(
+      "https://didcomm.org/user-profile/1.0/request-profile",
+      this.onProfileRequest.bind(this)
+    )
   }
 
   setupProfile(profile: Profile) {
@@ -216,6 +224,29 @@ export class Agent {
       },
     }
     await this.sendMessage(contact, message as IMessage)
+  }
+
+  async onProfileUpdate(message: AgentMessage) {
+    let contact = ContactService.getContact(message.message.from)
+    if (!contact) {
+      return
+    }
+
+    let label = message.message.body?.profile?.displayName
+    if (!label) {
+      return
+    }
+
+    contact.label = label
+    ContactService.addContact(contact)
+  }
+
+  async onProfileRequest(message: AgentMessage) {
+    let contact = ContactService.getContact(message.message.from)
+    if (!contact) {
+      return
+    }
+    await this.sendProfile(contact)
   }
 
   public async sendFeatureDiscovery(contact: Contact) {
