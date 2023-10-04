@@ -170,11 +170,16 @@ export class Agent {
     eventbus.emit(message.type, { sender: from, receiver: to, message })
   }
 
-  public onMessage(type: string, callback: (message: AgentMessage) => void): EventListenerHandle {
+  public onMessage(
+    type: string,
+    callback: (message: AgentMessage) => void
+  ): EventListenerHandle {
     return eventbus.on(type, callback)
   }
 
-  public onAnyMessage(callback: (message: AgentMessage) => void): EventListenerHandle {
+  public onAnyMessage(
+    callback: (message: AgentMessage) => void
+  ): EventListenerHandle {
     return eventbus.on("messageReceived", callback)
   }
 

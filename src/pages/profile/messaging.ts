@@ -203,7 +203,9 @@ class MessageHistoryComponent
   messages: Message[] = []
   content: string = ""
   contact: Contact
+  private didCopied: boolean = false
   private editMode: boolean = false
+  private contactHover: boolean = false
   private editedContactLabel: string = ""
   private autoScroll: boolean = true
   private eventbus: ScopedEventBus
@@ -263,6 +265,54 @@ class MessageHistoryComponent
   updateLabel(label: string) {
     this.contact.label = label
     ContactService.addContact(this.contact as Contact)
+  }
+
+  private showToast(message: string, duration: number = 2000) {
+    // Create a div element for the toast
+    const toast = document.createElement("div")
+    toast.className = "toast"
+    toast.textContent = message
+
+    // Append it to the body
+    document.body.appendChild(toast)
+
+    // Force a reflow to trigger the transition
+    void toast.offsetWidth
+
+    // Show the toast
+    toast.classList.add("show")
+
+    // Remove the toast after the specified duration
+    setTimeout(() => {
+      toast.classList.remove("show")
+
+      // Wait for the transition to finish before removing the element
+      toast.addEventListener("transitionend", () => {
+        document.body.removeChild(toast)
+      })
+    }, duration)
+  }
+
+  private copyToClipboard(text: string) {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        this.didCopied = true
+        m.redraw() // Inform Mithril to redraw the component
+
+        // Reset after some time (e.g., 2 seconds)
+        setTimeout(() => {
+          this.didCopied = false
+          m.redraw()
+        }, 2000)
+
+        // Show the toast
+        // Assuming you have a toast library/method named `showToast`
+        this.showToast("Copied!")
+      })
+      .catch(err => {
+        console.error("Failed to copy text: ", err)
+      })
   }
 
   viewMessage(message: Message) {
@@ -376,6 +426,8 @@ class MessageHistoryComponent
               alignItems: "flex-end",
               flexGrow: "2",
               flexDirection: "column",
+              alignSelf: "flex-start",
+              position: "relative",
             },
           },
           [
@@ -445,7 +497,14 @@ class MessageHistoryComponent
                 )
               : m(
                   "span",
-                  { style: { display: "flex", alignItems: "center" } },
+                  {
+                    style: {
+                      display: "flex",
+                      alignItems: "center",
+                      position: "absolute",
+                      width: "100%",
+                    },
+                  },
                   [
                     m(
                       "span",
@@ -459,8 +518,19 @@ class MessageHistoryComponent
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                         },
+                        onmouseover: () => {
+                          this.contactHover = true
+                        },
+                        onmouseout: () => {
+                          this.contactHover = false
+                        },
+                        onclick: () => {
+                          this.copyToClipboard(this.contact.did)
+                        },
                       },
-                      this.contact.label || this.contact.did
+                      this.contactHover
+                        ? this.contact.did
+                        : this.contact.label || this.contact.did
                     ),
                     m(
                       "button.button.is-white.is-small",
