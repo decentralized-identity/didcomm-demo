@@ -46,7 +46,8 @@ class ContactListComponent
 
   async onAddContact() {
     if (this.newContact.did) {
-      ContactService.addContact(this.newContact as Contact)
+      if (!ContactService.getContact(this.newContact.did))
+        ContactService.addContact(this.newContact as Contact)
       this.contacts = ContactService.getContacts()
       this.isModalOpen = false
       agent.sendProfile(this.newContact as Contact)
