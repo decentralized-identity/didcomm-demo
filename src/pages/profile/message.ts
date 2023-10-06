@@ -7,6 +7,7 @@ interface MessageCardAttrs {
   message: Message
   class?: "unhandled" | "info"
   inspectable?: boolean
+  hideBody?: boolean
 }
 
 export default class MessageCard implements m.ClassComponent<MessageCardAttrs> {
@@ -15,6 +16,7 @@ export default class MessageCard implements m.ClassComponent<MessageCardAttrs> {
   class?: "unhandled" | "info"
   status: "sent" | "received"
   inspectable?: boolean
+  hideBody?: boolean
   private isModalOpen: boolean = false
   private rawMessageData: string = ""
 
@@ -23,6 +25,7 @@ export default class MessageCard implements m.ClassComponent<MessageCardAttrs> {
     this.message = vnode.attrs.message
     this.class = vnode.attrs.class
     this.inspectable = vnode.attrs.inspectable
+    this.hideBody = vnode.attrs.hideBody
 
     this.status =
       this.message.raw?.from == agent.profile.did ? "sent" : "received"
@@ -69,39 +72,43 @@ export default class MessageCard implements m.ClassComponent<MessageCardAttrs> {
       m(".message-header", [
         this.viewMessageBoxHeader(this.header, this.message),
       ]),
-      m(
-        ".message-body",
-        {
-          style: {
-            display: "flex",
-            flexDirection: "column",
+      !this.hideBody &&
+        m(
+          ".message-body",
+          {
+            style: {
+              display: "flex",
+              flexDirection: "column",
+            },
           },
-        },
-        [
-          m("div", [
-            vnode.children,
-            this.inspectable &&
-              m(
-                "button.button.is-small",
-                {
-                  onclick: () => {
-                    this.isModalOpen = true
-                    this.rawMessageData = JSON.stringify(
-                      this.message.raw,
-                      null,
-                      2
-                    )
+          [
+            m("div", [
+              vnode.children,
+              this.inspectable &&
+                m(
+                  "button.button.is-small",
+                  {
+                    onclick: () => {
+                      this.isModalOpen = true
+                      this.rawMessageData = JSON.stringify(
+                        this.message.raw,
+                        null,
+                        2
+                      )
+                    },
+                    style: {
+                      marginTop: ".75rem",
+                      float: "right",
+                    },
                   },
-                  style: {
-                    marginTop: ".75rem",
-                    float: "right",
-                  },
-                },
-                [m("span.icon", m("i.fas.fa-plus")), m("span", "View Message")]
-              ),
-          ]),
-        ]
-      ),
+                  [
+                    m("span.icon", m("i.fas.fa-plus")),
+                    m("span", "View Message"),
+                  ]
+                ),
+            ]),
+          ]
+        ),
       this.isModalOpen &&
         m(".modal.is-active", [
           m(".modal-background", {
