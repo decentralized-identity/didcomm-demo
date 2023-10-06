@@ -46,7 +46,8 @@ class ContactListComponent
 
   async onAddContact() {
     if (this.newContact.did) {
-      ContactService.addContact(this.newContact as Contact)
+      if (!ContactService.getContact(this.newContact.did))
+        ContactService.addContact(this.newContact as Contact)
       this.contacts = ContactService.getContacts()
       this.isModalOpen = false
       agent.sendProfile(this.newContact as Contact)
@@ -231,11 +232,17 @@ class MessageHistoryComponent
     this.autoScroll = isAtBottom
   }
 
+  scrollToBottom(vnode: m.VnodeDOM<MessageHistoryComponentAttrs>) {
+    const container = vnode.dom.querySelector("#message-box") as HTMLElement
+    container.scrollTop = container.scrollHeight
+  }
+
+  oncreate(vnode: m.VnodeDOM<MessageHistoryComponentAttrs>) {
+    this.scrollToBottom(vnode)
+  }
+
   onupdate(vnode: m.VnodeDOM<MessageHistoryComponentAttrs>) {
-    if (this.autoScroll) {
-      const container = vnode.dom.querySelector("#message-box") as HTMLElement
-      container.scrollTop = container.scrollHeight
-    }
+    if (this.autoScroll) this.scrollToBottom(vnode)
   }
 
   onMessageReceived(message: AgentMessage) {
@@ -630,3 +637,5 @@ export default class MessagingComponent implements m.ClassComponent {
     }
   }
 }
+
+// vim: set ts=2 sw=2 sts=2 et ai :
