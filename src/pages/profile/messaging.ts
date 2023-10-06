@@ -400,6 +400,20 @@ class MessageHistoryComponent
             )
           )
         )
+      case "https://didcomm.org/trust-ping/2.0/ping":
+        return m(MessageCard, {
+          header: "Ping",
+          message,
+          inspectable: false,
+          hideBody: true,
+        })
+      case "https://didcomm.org/trust-ping/2.0/ping-response":
+        return m(MessageCard, {
+          header: "Pong",
+          message,
+          inspectable: false,
+          hideBody: true,
+        })
       default:
         return m(
           MessageCard,
