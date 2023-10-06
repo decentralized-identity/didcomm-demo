@@ -158,21 +158,6 @@ class ContactListComponent
                     )
                   ),
                 ]),
-                m(".field", [
-                  m("label.label", "Label (optional)"),
-                  m(
-                    "div.control",
-                    m(
-                      'input.input[type=text][placeholder="Label for the contact"]',
-                      {
-                        oninput: (e: Event) =>
-                          (this.newContact.label = (
-                            e.target as HTMLInputElement
-                          ).value),
-                      }
-                    )
-                  ),
-                ]),
               ]),
               m("footer.modal-card-foot", [
                 m(
