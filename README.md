@@ -21,7 +21,11 @@ Protocols implemented to make the demo be easier to use:
 - https://didcomm.org/basicmessage/2.0/
 - https://didcomm.org/user-profile/1.0/
 
-
+Along with the above protocols, `only did:peer:2` DIDs are supported at this
+time. The [DIDComm Demo][demo] creates a new `did:peer:2` DID upon page load
+and connects to a mediator (via the mediator's `did:peer:2` DID) to negotiate
+mediation. Once the negotiation has completed, the demo's DID will appear at
+the top of the screen.
 
 [demo]: https://demo.didcomm.org
 [didcomm]: https://didcomm.org
