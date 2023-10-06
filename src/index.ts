@@ -6,7 +6,7 @@ import "bulma/css/bulma.css"
 import "@fortawesome/fontawesome-free/css/all.css"
 
 window.addEventListener("beforeunload", event => {
-  event.returnValue = "Are you sure you leave? All data will be lost!"
+  event.returnValue = "Are you sure you want to leave? All data will be lost!"
 })
 
 m.route(document.body, "/", {
