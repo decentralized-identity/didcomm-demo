@@ -384,7 +384,7 @@ class MessageHistoryComponent
                   m(
                     "a",
                     {
-                      href: this.messageTypeToProtocol(disclosure.id),
+                      href: disclosure.id,
                       target: "_blank",
                     },
                     [
@@ -409,7 +409,7 @@ class MessageHistoryComponent
             class: "unhandled",
             inspectable: true,
           },
-          m("a", { href: message.type, target: "_blank" }, [
+          m("a", { href: this.messageTypeToProtocol(message.type), target: "_blank" }, [
             message.type,
             m("span.icon", m(`i.fas.fa-arrow-up-right-from-square.is-small`)),
           ])
