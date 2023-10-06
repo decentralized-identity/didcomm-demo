@@ -13,7 +13,7 @@ Protocols pertaining to mediation:
 - https://didcomm.org/messagepickup/3.0/
 
 Core Protocols:
-- https://didcomm.org/routing/2.0/ (via the [didcomm][dicommts] typescript library)
+- https://didcomm.org/routing/2.0/ (via the [didcomm][didcommts] typescript library)
 - https://didcomm.org/discover-features/2.0/
 - https://didcomm.org/trust-ping/2.0/
 
