@@ -1,5 +1,6 @@
 import * as m from "mithril"
 import Icon from "../../components/icon"
+import HelpModal from "./help"
 
 import "./navbar.css"
 
@@ -11,6 +12,8 @@ import {
   faRefresh,
   faChevronDown,
   faChevronUp,
+  faCircleQuestion,
+  faCodeBranch,
 } from "@fortawesome/free-solid-svg-icons"
 import agent from "../../lib/agent"
 
@@ -20,8 +23,13 @@ library.add(
   faEdit,
   faRefresh,
   faChevronDown,
-  faChevronUp
+  faChevronUp,
+  faCircleQuestion,
+  faCodeBranch,
 )
+
+const GITHUB_URL = "https://github.com/decentralized-identity/didcomm-demo"
+
 
 interface NavbarAttributes {
   profileName: string
@@ -36,6 +44,7 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
   private editMode: boolean = false
   private editedProfileName: string = ""
   private didCopied: boolean = false
+  private showHelp: boolean = false
 
   private showToast(message: string, duration: number = 2000) {
     // Create a div element for the toast
@@ -197,10 +206,37 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
               ]
             ),
       ]),
+      m(HelpModal, {
+        isActive: this.showHelp,
+        onClose: () => this.showHelp = false,
+      }),
       m(".navbar-menu", { class: this.burgerActive ? "is-active" : "" }, [
         m(".navbar-end", { style: { display: "flex", alignItems: "center" } }, [
           m(
-            "button.button.is-white",
+            "a.is-white.navbar-item",
+            {
+              href: GITHUB_URL,
+              target: "_blank",
+              title: "Check out the source on Github.", // Hover text
+            },
+            [
+              m("span.icon", [m("i.fas.fa-code-branch")]),
+              m("span", "Github")
+            ]
+          ),
+          m(
+            "button.button.is-white.navbar-item",
+            {
+              onclick: () => this.showHelp = true,
+              title: "What's going on here?", // Hover text
+            },
+            [
+              m("span.icon", [m("i.fas.fa-circle-question")]),
+              m("span", "Help")
+            ]
+          ),
+          m(
+            "button.button.is-white.navbar-item",
             {
               onclick: () => {
                 this.refreshMessages()
@@ -211,7 +247,7 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
             [m("span.icon", [m("i.fas.fa-refresh")])]
           ),
           m(
-            "a.navbar-item",
+            "button.button.is-white.navbar-item",
             {
               onclick: toggleConnection,
               title: "Click to " + (isConnected ? "disconnect" : "connect"), // Hover text
