@@ -9,7 +9,7 @@ const SAMPLES: Record<string, any> = {
   "Trust Ping": {
     type: "https://didcomm.org/trust-ping/2.0/ping",
     body: {
-      response_request: true,
+      response_requested: true,
     },
   },
   None: {},
