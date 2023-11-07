@@ -114,10 +114,14 @@ export default class DIDPeer {
     const expanded = Object.fromEntries(
       Object.entries(input).map(([key, value]) => {
         const expandedKey = reverseCommonStringAbbreviations[key] || key
-        const expandedValue =
-          typeof value === "string"
-            ? reverseCommonStringAbbreviations[value] || value
-            : value
+        let expandedValue = value;
+        if (typeof value == "string") {
+          expandedValue = reverseCommonStringAbbreviations[value] || value
+        } else if (Array.isArray(value)) {
+          expandedValue = value.map((item: any) => reverseCommonStringAbbreviations[item] || item)
+        } else if (typeof value == "object") {
+          expandedValue = DIDPeer.expandCommonStringAbbreviations(expandedValue)
+        }
         return [expandedKey, expandedValue]
       })
     )
@@ -128,10 +132,14 @@ export default class DIDPeer {
     const abbreviated = Object.fromEntries(
       Object.entries(input).map(([key, value]) => {
         const abbreviatedKey = commonStringAbbreviations[key] || key
-        const abbreviatedValue =
-          typeof value === "string"
-            ? commonStringAbbreviations[value] || value
-            : value
+        let abbreviatedValue = value
+        if (typeof value == "string") {
+          abbreviatedValue = commonStringAbbreviations[value] || value
+        } else if (Array.isArray(value)) {
+          abbreviatedValue = value.map((item: any) => commonStringAbbreviations[item] || item)
+        } else if (typeof value == "object") {
+          abbreviatedValue = DIDPeer.abbreviateCommonStrings(abbreviatedValue)
+        }
         return [abbreviatedKey, abbreviatedValue]
       })
     )
