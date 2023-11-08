@@ -25,18 +25,15 @@ export default class ComposeComponent implements m.ClassComponent {
   }
 
   oncreate(vnode: m.VnodeDOM<{}, this>) {
-    console.log("LOGGING SAMPLES", SAMPLES["Trust Ping"])
     this.content = JSON.stringify(SAMPLES["Trust Ping"], null, 2)
   }
 
   onSampleSelected(e: Event) {
-    console.log((e.target as HTMLSelectElement).value)
     this.content = JSON.stringify(
       SAMPLES[(e.target as HTMLSelectElement).value],
       null,
       2
     )
-    console.log(this.content)
     m.redraw()
   }
 

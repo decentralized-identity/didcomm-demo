@@ -36,9 +36,7 @@ export default class JSONEditor
     return m("lit-code", {
       language: "json",
       linenumbers: true,
-      onupdate: (e: any) => {
-        console.log("onupdate", e)
-      },
+      onupdate: (e: any) => {},
     })
   }
 }
