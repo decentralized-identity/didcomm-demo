@@ -157,7 +157,9 @@ export default class DIDPeer {
     const doc: any = {
       "@context": "https://www.w3.org/ns/did/v1",
       id: did,
+      service: [],
     }
+    let serviceIndex = 0;
 
     elements.forEach(element => {
       const purposeCode = element.charAt(0)
@@ -229,13 +231,14 @@ export default class DIDPeer {
             .map((service: any) => {
               // TODO This is a bandaid! Mediator should include id in services.
               if (!("id" in service)) {
-                service.id = "#service"
+                let suffix = serviceIndex++ > 0 ? "" : `-${serviceIndex}`
+                service.id = `#service${suffix}`
               }
               return service
             })
             .map(DIDPeer.transformOldServiceStyleToNew)
 
-          doc.service = services
+          doc.service.push(...services)
           break
         }
 
