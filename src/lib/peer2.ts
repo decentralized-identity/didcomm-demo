@@ -238,7 +238,7 @@ export default class DIDPeer {
             })
             .map(DIDPeer.transformOldServiceStyleToNew)
 
-          doc.service.push(...services)
+          doc.service.concat(services)
           break
         }
 
