@@ -44,8 +44,23 @@ export default class MessageCard implements m.ClassComponent<MessageCardAttrs> {
       [
         m(
           "span",
-          { style: { flexGrow: 1 } },
-          `${header} - ${message.timestamp.toLocaleTimeString()}`
+          { style: { display: 'flex', minWidth: 0, flex: 'auto' } },
+          m(
+            "div",
+            {
+              style: {
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                wordBreak: 'break-word',
+              },
+            },
+            header
+          ),
+          m("div",
+            { style: {whiteSpace: 'nowrap', padding: '0 0.3rem'}},
+            ` - ${message.timestamp.toLocaleTimeString()}`
+          ),
         ),
         m("span.icon", m(`i.fas.fa-${icon}`)),
       ]
