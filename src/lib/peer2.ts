@@ -157,7 +157,6 @@ export default class DIDPeer {
     const doc: any = {
       "@context": "https://www.w3.org/ns/did/v1",
       id: did,
-      service: [],
     }
     let serviceIndex = 0;
 
@@ -238,7 +237,10 @@ export default class DIDPeer {
             })
             .map(DIDPeer.transformOldServiceStyleToNew)
 
-          doc.service.push(...services)
+          if (!Array.isArray(doc.service)) {
+            doc.service = [];
+          }
+          doc.service.concat(services)
           break
         }
 
