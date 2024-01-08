@@ -34,6 +34,15 @@ class ContactListComponent
     if (!ContactService.getContact(message.message.from)) {
       let newContact = { did: message.message.from }
       ContactService.addContact(newContact as Contact)
+      let msgToSave = {
+        raw: message.message,
+        type: message.message.type,
+        sender: newContact.did,
+        receiver: message.receiver?.label || message.receiver.did,
+        timestamp: new Date(),
+        content: message.message.body?.content
+      };
+      ContactService.addMessage(newContact.did, msgToSave)
       if (
         message.message.type != "https://didcomm.org/user-profile/1.0/profile"
       ) {

@@ -10,3 +10,6 @@ div.console-container {
 div.compose-container {
 	flex-grow: 1;
 }
+#left {
+	min-width: 0;
+}
