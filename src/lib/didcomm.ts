@@ -13,6 +13,7 @@ import {
   PackEncryptedMetadata,
   MessagingServiceMetadata,
   IMessage,
+  Service,
 } from "didcomm"
 import DIDPeer from "./peer2"
 import { v4 as uuidv4 } from "uuid"
@@ -234,7 +235,7 @@ export class DIDComm {
     return await this.resolver.resolve(did)
   }
 
-  async resolveDIDCommServices(did: DID): Promise<any> {
+  async resolveDIDCommServices(did: DID): Promise<Service[]> {
     const doc = await this.resolve(did)
     if (!doc) {
       throw new Error("Unable to resolve DID")
@@ -273,7 +274,7 @@ export class DIDComm {
    */
   async httpEndpoint(did: DID): Promise<MessagingServiceMetadata> {
     const services = await this.resolveDIDCommServices(did)
-    const service = services.filter((s: any) =>
+    const service = services.filter((s: Service) =>
       s.serviceEndpoint.uri.startsWith("http")
     )[0]
     return {

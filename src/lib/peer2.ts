@@ -240,7 +240,7 @@ export default class DIDPeer {
           if (!Array.isArray(doc.service)) {
             doc.service = [];
           }
-          doc.service.concat(services)
+          doc.service = doc.service.concat(services)
           break
         }
 
