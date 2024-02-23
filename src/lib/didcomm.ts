@@ -26,7 +26,8 @@ function x25519ToSecret(
   x25519KeyPriv: Uint8Array,
   x25519Key: Uint8Array
 ): Secret {
-  const encIdent = DIDPeer.keyToIdent(x25519Key, "x25519-pub")
+  //const encIdent = DIDPeer.keyToIdent(x25519Key, "x25519-pub")
+  const encIdent = "key-2"
   const secretEnc: Secret = {
     id: `${did}#${encIdent}`,
     type: "X25519KeyAgreementKey2020",
@@ -40,7 +41,8 @@ function ed25519ToSecret(
   ed25519KeyPriv: Uint8Array,
   ed25519Key: Uint8Array
 ): Secret {
-  const verIdent = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
+  //const verIdent = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
+  const verIdent = "key-1"
   const secretVer: Secret = {
     id: `${did}#${verIdent}`,
     type: "Ed25519VerificationKey2020",
@@ -56,8 +58,11 @@ export function generateDidForMediator() {
   const enckey = edwardsToMontgomeryPub(verkey)
   const service = {
     type: "DIDCommMessaging",
-    serviceEndpoint: "",
-    accept: ["didcomm/v2"],
+    serviceEndpoint: {
+      uri: "didcomm:transport/queue",
+      accept: ["didcomm/v2"],
+      routingKeys: [] as string[],
+    },
   }
   const did = DIDPeer.generate([verkey], [enckey], service)
 
