@@ -110,8 +110,25 @@ export class DIDWebResolver implements DIDResolver {
     if(did in did_web_cache)
       return did_web_cache[did];
 
+    // Remove did:web: from the start
     var path = did.slice(8);
-    path += "/.well-known/did.json";
+
+    // Split by : to build the path
+    var paths = path.split(":")
+
+    // Decode %3A to a :
+    paths[0] = paths[0].replaceAll(/%3[aA]/g, ":")
+
+    if(paths.length == 1) {
+      // If there's only one elemenet in the path, fetch the well known
+      path = `${paths[0]}/.well-known/did.json`;
+    } else {
+      // Otherwise, join and fetch the ./did.json
+      path = paths.join("/");
+      path += "/did.json";
+    }
+
+    // Fetch the did_doc
     const raw_doc = await fetch(`https://${path}`);
     var doc = await raw_doc.json();
     console.log("doc?", doc);
