@@ -231,6 +231,7 @@ export default class DIDPeer {
               return service
             })
             .map(DIDPeer.transformOldServiceStyleToNew)
+            .filter((service: any) => {return service.type == "DIDCommMessaging"})
           services = services.filter((service: any) => service.type == "DIDCommMessaging")
 
           if (!Array.isArray(doc.service)) {

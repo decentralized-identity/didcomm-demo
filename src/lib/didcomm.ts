@@ -156,6 +156,7 @@ export class DIDWebResolver implements DIDResolver {
       if(value.startsWith("#"))
         arr[index] = did + value
     });
+    doc["service"] = doc["service"].filter((s: any) => s.type == "DIDCommMessaging");
     did_web_cache[did] = doc;
     return doc
   }
