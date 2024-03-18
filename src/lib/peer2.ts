@@ -159,6 +159,7 @@ export default class DIDPeer {
       id: did,
     }
     let serviceIndex = 0;
+    let keyIndex = 1;
 
     elements.forEach(element => {
       const purposeCode = element.charAt(0)
@@ -175,10 +176,7 @@ export default class DIDPeer {
           if (!doc.verificationMethod) {
             doc.verificationMethod = []
           }
-          let ident = `${did}#${DIDPeer.keyToIdent(
-            decodedSigningKey,
-            "ed25519-pub"
-          )}`
+          let ident = `${did}#key-${keyIndex++}`
           doc.verificationMethod.push({
             id: ident,
             controller: did,
@@ -202,10 +200,7 @@ export default class DIDPeer {
           if (!doc.verificationMethod) {
             doc.verificationMethod = []
           }
-          let ident = `${did}#${DIDPeer.keyToIdent(
-            decodedEncryptionKey,
-            "x25519-pub"
-          )}`
+          let ident = `${did}#key-${keyIndex++}`
           doc.verificationMethod.push({
             id: ident,
             controller: did,
@@ -236,6 +231,8 @@ export default class DIDPeer {
               return service
             })
             .map(DIDPeer.transformOldServiceStyleToNew)
+            .filter((service: any) => {return service.type == "DIDCommMessaging"})
+          services = services.filter((service: any) => service.type == "DIDCommMessaging")
 
           if (!Array.isArray(doc.service)) {
             doc.service = [];
