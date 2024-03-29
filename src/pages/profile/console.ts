@@ -141,7 +141,7 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
         let line = lines[i];
 
         if((/^  "type": "(.+)",?$/).test(line)) {
-          const regex = /(.+)"(.+)\/([a-z0-9-_\.]+)\/([0-9]+\.[0-9])\/([a-z0-9-_\.]+)/i;
+          const regex = /(.+)"(.+)\/([a-z0-9-_\.]+)\/([0-9]+\.[0-9])\/([a-z0-9-_\.]+)(".+)/i;
           if(!regex.test(line)) {
             messages.push(m("span", line));
             continue;
@@ -158,7 +158,8 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
             "/",
             m("span", {style:{color:"#c00000"}}, match[4]),
             "/",
-            m("span", {style:{color:"#51a33f"}}, match[5])
+            m("span", {style:{color:"#51a33f"}}, match[5]),
+            match[6],
           );
           continue;
         }
