@@ -10,3 +10,30 @@ pre.logs-viewport {
 pre.logs-viewport code {
 	display: block;
 }
+
+span.did.prefix {
+	color: #d41f0b;
+}
+span.did.method {
+	color: #1a4b99;
+}
+span.did.data {
+	color: #32a852;
+}
+span.did.fragment {
+	color: #bf800b;
+}
+
+span.protocol.prefix {
+	color: #0070c0;
+}
+span.protocol.group {
+	/*original slide color: "#f1c232"*/
+	color: #b97713;
+}
+span.protocol.version {
+	color: #c00000;
+}
+span.protocol.function {
+	color: #51a33f;
+}

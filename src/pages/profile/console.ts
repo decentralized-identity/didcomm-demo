@@ -113,18 +113,19 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
   parseLogEntry(entry: string) : m.Vnode {
     const colorizeDid = (entry: string): m.Vnode => {
       const didRegex = /(.*)(did):([a-z0-9]+):((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)([?/#][a-zA-Z0-9._%-])?(".*)/
-      if(!didRegex.test(entry))
+      if(!didRegex.test(entry)) {
         return m("span", entry);
+      }
       const match = didRegex.exec(entry);
       return m(
         "span",
         match[1],
-        m("span", {style:{color:"#d41f0b"}}, match[2]),
+        m("span.did.prefix", match[2]),
         ":",
-        m("span", {style:{color:"#1a4b99"}}, match[3]),
+        m("span.did.method", match[3]),
         ":",
-        m("span", {style:{color:"#32a852"}}, match[4]),
-        m("span", {style:{color:"#bf800b"}}, match[5]),
+        m("span.did.data", match[4]),
+        m("span.did.fragment", match[5]),
         match[6]
       );
     }
@@ -135,8 +136,9 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
 
       let messages : (m.Vnode | string)[] = [];
       for(var i = 0; i < lines.length; i++) {
-        if(i > 0)
+        if(i > 0) {
           messages.push("\n");
+        }
 
         let line = lines[i];
 
@@ -151,14 +153,13 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
           messages.push(
             match[1],
             '"',
-            m("span", {style:{color:"#0070c0"}}, match[2]),
+            m("span.protocol.prefix", match[2]),
             "/",
-            /*original slide color: "#f1c232"*/
-            m("span", {style:{color:"#b97713"}}, match[3]),
+            m("span.protocol.group", match[3]),
             "/",
-            m("span", {style:{color:"#c00000"}}, match[4]),
+            m("span.protocol.version", match[4]),
             "/",
-            m("span", {style:{color:"#51a33f"}}, match[5]),
+            m("span.protocol.function", match[5]),
             match[6],
           );
           continue;
