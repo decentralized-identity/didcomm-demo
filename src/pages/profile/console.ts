@@ -110,6 +110,74 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
     this.autoScroll = isAtBottom
   }
 
+  parseLogEntry(entry: string) : m.Vnode {
+    const colorizeDid = (entry: string): m.Vnode => {
+      const didRegex = /(.*)(did):([a-z0-9]+):((?:[a-zA-Z0-9._%-]*:)*[a-zA-Z0-9._%-]+)([?/#][a-zA-Z0-9._%-])?(".*)/
+      if(!didRegex.test(entry)) {
+        return m("span", entry);
+      }
+      const match = didRegex.exec(entry);
+      return m(
+        "span",
+        match[1],
+        m("span.did.prefix", match[2]),
+        ":",
+        m("span.did.method", match[3]),
+        ":",
+        m("span.did.data", match[4]),
+        m("span.did.fragment", match[5]),
+        match[6]
+      );
+    }
+    const colorizeType = (header_string: string, entry: string): m.Vnode => {
+      const decodedMessage = JSON.parse(entry.slice(header_string.length));
+      const renderedMessage = JSON.stringify(decodedMessage, null, 2);
+      const lines = renderedMessage.split("\n");
+
+      let messages : (m.Vnode | string)[] = [];
+      for(var i = 0; i < lines.length; i++) {
+        if(i > 0) {
+          messages.push("\n");
+        }
+
+        let line = lines[i];
+
+        if((/^  "type": "(.+)",?$/).test(line)) {
+          const regex = /(.+)"(.+)\/([a-z0-9-_\.]+)\/([0-9]+\.[0-9])\/([a-z0-9-_\.]+)(".+)/i;
+          if(!regex.test(line)) {
+            messages.push(m("span", line));
+            continue;
+          }
+
+          let match = regex.exec(line);
+          messages.push(
+            match[1],
+            '"',
+            m("span.protocol.prefix", match[2]),
+            "/",
+            m("span.protocol.group", match[3]),
+            "/",
+            m("span.protocol.version", match[4]),
+            "/",
+            m("span.protocol.function", match[5]),
+            match[6],
+          );
+          continue;
+        }
+        messages.push(colorizeDid(line));
+      }
+      return m("span", header_string, messages);
+    };
+
+    if(entry.startsWith("Received: ")) {
+      return colorizeType("Received: ", entry);
+    }
+    if(entry.startsWith("Sent: ")) {
+      return colorizeType("Sent: ", entry);
+    }
+    return m("span", entry);
+  }
+
   view() {
     return m(".console", [
       m(ConsoleControls, {
@@ -124,7 +192,7 @@ class ConsoleComponent implements m.ClassComponent<ConsoleAttributes> {
           oncreate: vnode => (this.logsViewport = vnode.dom as HTMLElement),
           onscroll: (e: Event) => this.handleScroll(e),
         },
-        this.logs.map(log => m("code", log))
+        this.logs.map(log => m("code", this.parseLogEntry(log)))
       ),
     ])
   }
