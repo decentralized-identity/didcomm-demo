@@ -1,7 +1,7 @@
 {
   "name": "didcomm-demo",
   "version": "1.0.0",
-  "description": "",
+  "description": "A browser-based demonstration of DIDComm v2 messaging, showcasing simple and advanced protocols for decentralized identity communication.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,9 +9,24 @@
     "build": "webpack build",
     "format": "prettier --write \"src/**/*.ts\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/decentralized-identity/didcomm-demo.git"
+  },
+  "keywords": [
+    "DIDComm",
+    "decentralized identity",
+    "identity",
+    "communication",
+    "DID",
+    "messaging"
+  ],
+  "author": "Decentralized Identity Foundation",
+  "license": "MIT",
+  "homepage": "https://demo.didcomm.org",
+  "bugs": {
+    "url": "https://github.com/decentralized-identity/didcomm-demo/issues"
+  },
   "dependencies": {
     "@noble/curves": "^1.2.0",
     "didcomm": "^0.4.1",
