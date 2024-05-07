@@ -75,4 +75,4 @@ Please read [CONTRIBUTING.md](https://github.com/decentralized-identity/didcomm-
 
 ## License
 
-This project is licensed under the ISC License - see the [LICENSE](https://github.com/decentralized-identity/didcomm-demo/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/decentralized-identity/didcomm-demo/blob/main/LICENSE) file for details.
