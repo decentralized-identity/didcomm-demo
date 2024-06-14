@@ -26,7 +26,8 @@ function x25519ToSecret(
   x25519KeyPriv: Uint8Array,
   x25519Key: Uint8Array
 ): Secret {
-  const encIdent = DIDPeer.keyToIdent(x25519Key, "x25519-pub")
+  //const encIdent = DIDPeer.keyToIdent(x25519Key, "x25519-pub")
+  const encIdent = "key-2"
   const secretEnc: Secret = {
     id: `${did}#${encIdent}`,
     type: "X25519KeyAgreementKey2020",
@@ -40,7 +41,8 @@ function ed25519ToSecret(
   ed25519KeyPriv: Uint8Array,
   ed25519Key: Uint8Array
 ): Secret {
-  const verIdent = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
+  //const verIdent = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
+  const verIdent = "key-1"
   const secretVer: Secret = {
     id: `${did}#${verIdent}`,
     type: "Ed25519VerificationKey2020",
@@ -56,8 +58,11 @@ export function generateDidForMediator() {
   const enckey = edwardsToMontgomeryPub(verkey)
   const service = {
     type: "DIDCommMessaging",
-    serviceEndpoint: "",
-    accept: ["didcomm/v2"],
+    serviceEndpoint: {
+      uri: "didcomm:transport/queue",
+      accept: ["didcomm/v2"],
+      routingKeys: [] as string[],
+    },
   }
   const did = DIDPeer.generate([verkey], [enckey], service)
 
@@ -95,6 +100,85 @@ export class DIDPeerResolver implements DIDResolver {
       keyAgreement: raw_doc.keyAgreement,
       service: raw_doc.service,
     }
+  }
+}
+
+var did_web_cache: Record<DID, any> = {};
+
+export class DIDWebResolver implements DIDResolver {
+  async resolve(did: DID): Promise<DIDDoc | null> {
+    if(did in did_web_cache)
+      return did_web_cache[did];
+
+    // Remove did:web: from the start
+    var path = did.slice(8);
+
+    // Split by : to build the path
+    var paths = path.split(":")
+
+    // Decode %3A to a :
+    paths[0] = paths[0].replaceAll(/%3[aA]/g, ":")
+
+    if(paths.length == 1) {
+      // If there's only one elemenet in the path, fetch the well known
+      path = `${paths[0]}/.well-known/did.json`;
+    } else {
+      // Otherwise, join and fetch the ./did.json
+      path = paths.join("/");
+      path += "/did.json";
+    }
+
+    // Fetch the did_doc
+    const raw_doc = await fetch(`https://${path}`);
+    var doc = await raw_doc.json();
+    console.log("doc?", doc);
+    var new_methods = []
+    for(const method of doc["verificationMethod"]) {
+      var t = "MultiKey";
+      if (doc["authentication"].includes(method["id"]))
+        t = "Ed25519VerificationKey2020";
+      if (doc["keyAgreement"].includes(method["id"]))
+        t = "X25519KeyAgreementKey2020";
+      var new_method = {
+        ...method,
+        type: t,
+      }
+      if(new_method.id.startsWith("#"))
+        new_method.id = new_method.controller + new_method.id
+      new_methods.push(new_method);
+    }
+    doc["verificationMethod"] = new_methods;
+    doc["keyAgreement"].forEach((value: string, index: number, arr: Array<string>) => {
+      if(value.startsWith("#"))
+        arr[index] = did + value
+    });
+    doc["authentication"].forEach((value: string, index: number, arr: Array<string>) => {
+      if(value.startsWith("#"))
+        arr[index] = did + value
+    });
+    doc["service"] = doc["service"].filter((s: any) => s.type == "DIDCommMessaging");
+    did_web_cache[did] = doc;
+    return doc
+  }
+}
+
+type ResolverMap = {
+  [key: string]: DIDResolver;
+}
+
+export class PrefixResolver implements DIDResolver {
+  resolver_map: ResolverMap = {}
+  constructor() {
+    this.resolver_map = {
+      "did:peer:2": new DIDPeerResolver() as DIDResolver,
+      "did:web:": new DIDWebResolver() as DIDResolver,
+    }
+  }
+
+  async resolve(did: DID): Promise<DIDDoc | null> {
+    var result = Object.keys(this.resolver_map).filter(resolver => did.startsWith(resolver));
+    const resolved_doc = await this.resolver_map[result[0] as keyof typeof this.resolver_map].resolve(did);
+    return resolved_doc;
   }
 }
 
@@ -211,11 +295,11 @@ export interface DIDCommMessage {
 }
 
 export class DIDComm {
-  private readonly resolver: DIDPeerResolver
+  private readonly resolver: DIDResolver
   private readonly secretsResolver: SecretsManager
 
   constructor() {
-    this.resolver = new DIDPeerResolver()
+    this.resolver = new PrefixResolver()
     this.secretsResolver = new EphemeralSecretsResolver()
   }
 
