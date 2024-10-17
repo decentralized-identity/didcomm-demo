@@ -16,8 +16,11 @@ import {
   Service,
 } from "didcomm"
 import DIDPeer from "./peer2"
+import * as DIDPeer4 from "./peer4"
 import { v4 as uuidv4 } from "uuid"
 import logger from "./logger"
+import * as multibase from "multibase"
+import * as multicodec from "multicodec"
 
 export type DID = string
 
@@ -51,39 +54,99 @@ function ed25519ToSecret(
   return secretVer
 }
 
-export function generateDidForMediator() {
+export async function generateDidForMediator() {
   const key = ed25519.utils.randomPrivateKey()
   const enckeyPriv = edwardsToMontgomeryPriv(key)
   const verkey = ed25519.getPublicKey(key)
   const enckey = edwardsToMontgomeryPub(verkey)
   const service = {
     type: "DIDCommMessaging",
+    id: "#service",
     serviceEndpoint: {
       uri: "didcomm:transport/queue",
       accept: ["didcomm/v2"],
       routingKeys: [] as string[],
     },
   }
-  const did = DIDPeer.generate([verkey], [enckey], service)
+  //const did = DIDPeer.generate([verkey], [enckey], service)  // did:peer:2
+  const doc = {
+    "@context": [
+      "https://www.w3.org/ns/did/v1",
+      "https://w3id.org/security/multikey/v1"
+    ],
+    "verificationMethod": [
+      {
+        "id": "#key-1",
+        "type": "Multikey",
+        "publicKeyMultibase": DIDPeer.keyToMultibase(verkey, "ed25519-pub")
+      },
+      {
+        "id": "#key-2",
+        "type": "Multikey",
+        "publicKeyMultibase": DIDPeer.keyToMultibase(enckey, "x25519-pub")
+      }
+    ],
+    "authentication": [
+      "#key-1"
+    ],
+    "capabilityDelegation": [
+      "#key-1"
+    ],
+    "service": [service],
+    "keyAgreement": [
+      "#key-2"
+    ]
+  }
+  const did = await DIDPeer4.encode(doc)
 
   const secretVer = ed25519ToSecret(did, key, verkey)
   const secretEnc = x25519ToSecret(did, enckeyPriv, enckey)
   return { did, secrets: [secretVer, secretEnc] }
 }
 
-export function generateDid(routingDid: DID) {
+export async function generateDid(routingDid: DID) {
   const key = ed25519.utils.randomPrivateKey()
   const enckeyPriv = edwardsToMontgomeryPriv(key)
   const verkey = ed25519.getPublicKey(key)
   const enckey = edwardsToMontgomeryPub(verkey)
   const service = {
     type: "DIDCommMessaging",
+    id: "#service",
     serviceEndpoint: {
       uri: routingDid,
       accept: ["didcomm/v2"],
     },
   }
-  const did = DIDPeer.generate([verkey], [enckey], service)
+  //const did = DIDPeer.generate([verkey], [enckey], service)  // did:peer:2
+  const doc = {
+    "@context": [
+      "https://www.w3.org/ns/did/v1",
+      "https://w3id.org/security/multikey/v1"
+    ],
+    "verificationMethod": [
+      {
+        "id": "#key-1",
+        "type": "Multikey",
+        "publicKeyMultibase": DIDPeer.keyToMultibase(verkey, "ed25519-pub")
+      },
+      {
+        "id": "#key-2",
+        "type": "Multikey",
+        "publicKeyMultibase": DIDPeer.keyToMultibase(enckey, "x25519-pub")
+      }
+    ],
+    "authentication": [
+      "#key-1"
+    ],
+    "capabilityDelegation": [
+      "#key-1"
+    ],
+    "service": [service],
+    "keyAgreement": [
+      "#key-2"
+    ]
+  }
+  const did = await DIDPeer4.encode(doc)
 
   const secretVer = ed25519ToSecret(did, key, verkey)
   const secretEnc = x25519ToSecret(did, enckeyPriv, enckey)
@@ -98,6 +161,43 @@ export class DIDPeerResolver implements DIDResolver {
       verificationMethod: raw_doc.verificationMethod,
       authentication: raw_doc.authentication,
       keyAgreement: raw_doc.keyAgreement,
+      service: raw_doc.service,
+    }
+  }
+}
+
+export class DIDPeer4Resolver implements DIDResolver {
+  async resolve(did: DID): Promise<DIDDoc | null> {
+    const raw_doc = await DIDPeer4.resolve(did)
+    const fix_vms = async (vms: Array<Record<string, any>>) => {
+      let methods = vms.map((k: Record<string, any>) => {
+        let new_method = {
+          id: `${did}${k.id}`,
+          type: k.type,
+          controller: k.controller,
+          publicKeyMultibase: k.publicKeyMultibase
+        }
+        if(new_method.type == "Multikey") {
+          const key = multibase.decode(k.publicKeyMultibase)
+          const codec = multicodec.getNameFromData(key)
+          switch(codec) {
+            case "x25519-pub":
+              new_method.type = "X25519KeyAgreementKey2020"
+            break
+            case "ed25519-pub":
+              new_method.type = "Ed25519VerificationKey2020"
+            break
+          }
+        }
+        return new_method
+      })
+      return methods
+    };
+    return {
+      id: raw_doc.id,
+      verificationMethod: await fix_vms(raw_doc.verificationMethod),
+      authentication: raw_doc.authentication.map((kid: string) => `${raw_doc.id}${kid}`),
+      keyAgreement: raw_doc.keyAgreement.map((kid: string) => `${raw_doc.id}${kid}`),
       service: raw_doc.service,
     }
   }
@@ -171,6 +271,7 @@ export class PrefixResolver implements DIDResolver {
   constructor() {
     this.resolver_map = {
       "did:peer:2": new DIDPeerResolver() as DIDResolver,
+      "did:peer:4": new DIDPeer4Resolver() as DIDResolver,
       "did:web:": new DIDWebResolver() as DIDResolver,
     }
   }
@@ -304,13 +405,13 @@ export class DIDComm {
   }
 
   async generateDidForMediator(): Promise<DID> {
-    const { did, secrets } = generateDidForMediator()
+    const { did, secrets } = await generateDidForMediator()
     secrets.forEach(secret => this.secretsResolver.store_secret(secret))
     return did
   }
 
   async generateDid(routingDid: DID): Promise<DID> {
-    const { did, secrets } = generateDid(routingDid)
+    const { did, secrets } = await generateDid(routingDid)
     secrets.forEach(secret => this.secretsResolver.store_secret(secret))
     return did
   }
