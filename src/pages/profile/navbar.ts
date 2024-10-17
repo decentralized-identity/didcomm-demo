@@ -98,6 +98,11 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
     agent.refreshMessages()
   }
 
+  rotateDid() {
+    agent.rotateDid()
+  }
+
+
   view(vnode: m.Vnode<NavbarAttributes>) {
     const {
       profileName,
@@ -170,6 +175,17 @@ export default class Navbar implements m.ClassComponent<NavbarAttributes> {
                     { style: { marginRight: ".5em" } },
                     `(${truncatedDid})`
                   ),
+                did && m(
+                  "button.button.is-white.navbar-item",
+                  {
+                    onclick: () => {
+                      this.rotateDid()
+                    },
+                    style: { marginRight: ".5em" },
+                    title: "Rotate DID",
+                  },
+                  [m("span.icon", [m("i.fas.fa-refresh")])]
+                ),
                 did &&
                   m(
                     "button.button.is-small.is-white",

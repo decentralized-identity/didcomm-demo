@@ -8,6 +8,8 @@ import {
   DIDDoc,
   SecretsResolver,
   Secret,
+  IFromPrior,
+  FromPrior,
   Message,
   UnpackMetadata,
   PackEncryptedMetadata,
@@ -39,17 +41,20 @@ function x25519ToSecret(
   return secretEnc
 }
 
-function ed25519ToSecret(
+async function ed25519ToSecret(
   did: DID,
   ed25519KeyPriv: Uint8Array,
   ed25519Key: Uint8Array
-): Secret {
+): Promise<Secret> {
   //const verIdent = DIDPeer.keyToIdent(ed25519Key, "ed25519-pub")
   const verIdent = "key-1"
+  const ed25519KeyPriv2 = new Uint8Array(ed25519Key.length + ed25519KeyPriv.length)
+  ed25519KeyPriv2.set(ed25519KeyPriv)
+  ed25519KeyPriv2.set(ed25519Key, ed25519KeyPriv.length)
   const secretVer: Secret = {
     id: `${did}#${verIdent}`,
     type: "Ed25519VerificationKey2020",
-    privateKeyMultibase: DIDPeer.keyToMultibase(ed25519KeyPriv, "ed25519-priv"),
+    privateKeyMultibase: DIDPeer.keyToMultibase(ed25519KeyPriv2, "ed25519-priv"),
   }
   return secretVer
 }
@@ -99,7 +104,7 @@ export async function generateDidForMediator() {
   }
   const did = await DIDPeer4.encode(doc)
 
-  const secretVer = ed25519ToSecret(did, key, verkey)
+  const secretVer = await ed25519ToSecret(did, key, verkey)
   const secretEnc = x25519ToSecret(did, enckeyPriv, enckey)
   return { did, secrets: [secretVer, secretEnc] }
 }
@@ -148,7 +153,7 @@ export async function generateDid(routingDid: DID) {
   }
   const did = await DIDPeer4.encode(doc)
 
-  const secretVer = ed25519ToSecret(did, key, verkey)
+  const secretVer = await ed25519ToSecret(did, key, verkey)
   const secretEnc = x25519ToSecret(did, enckeyPriv, enckey)
   return { did, secrets: [secretVer, secretEnc] }
 }
@@ -193,13 +198,15 @@ export class DIDPeer4Resolver implements DIDResolver {
       })
       return methods
     };
-    return {
+    const doc = {
       id: raw_doc.id,
       verificationMethod: await fix_vms(raw_doc.verificationMethod),
       authentication: raw_doc.authentication.map((kid: string) => `${raw_doc.id}${kid}`),
       keyAgreement: raw_doc.keyAgreement.map((kid: string) => `${raw_doc.id}${kid}`),
       service: raw_doc.service,
     }
+    console.log(doc)
+    return doc
   }
 }
 
@@ -466,6 +473,20 @@ export class DIDComm {
       id: service.id,
       service_endpoint: service.serviceEndpoint.uri,
     }
+  }
+
+  async rotateDID(
+    olddid: DID,
+    newdid: DID,
+  ): Promise<[string, string]> {
+    return await (new FromPrior({iss: olddid, sub: newdid})).pack(null, this.resolver, this.secretsResolver)
+    return await (new FromPrior({iss: olddid, sub: newdid})).pack(`${olddid}#key-1`, this.resolver, this.secretsResolver)
+  }
+
+  async getPrior(prior: string): Promise<IFromPrior> {
+    const from_prior = await FromPrior.unpack(prior, this.resolver)
+    console.log(from_prior)
+    return from_prior[0].as_value()
   }
 
   async prepareMessage(

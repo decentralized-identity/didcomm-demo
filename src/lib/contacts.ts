@@ -154,6 +154,15 @@ export class EphemeralContactService extends ContactService {
     this.contacts[contact.did] = contact
   }
 
+  rotateContact(contact: Contact, newDid: string): void {
+    const old_did = contact.did
+    delete this.contacts[contact.did]
+    contact.did = newDid
+    this.contacts[contact.did] = contact
+    this.messages[newDid] = this.messages[old_did]
+    delete this.messages[old_did]
+  }
+
   saveMessageHistory(did: string, messages: Message[]): void {
     this.messages[did] = messages
   }
