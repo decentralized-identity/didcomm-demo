@@ -63,27 +63,18 @@ export class Agent {
         this.onDidGenerated(e.data.payload)
         break
       case "didRotated":
-        //this.onDidGenerated(e.data.payload)
         let contacts = ContactService.getContacts()
         const {oldDid, newDid, jwt} = e.data.payload
         if(this.profile.did == oldDid)
           this.profile.did = newDid
-        const header = {
-          "alg": "HS256",
-          "typ": "JWT",
-        }
-        //const encodedHeaders = btoa(JSON.stringify(header))
-        //const claims = {
-        //  sub: newDid,
-        //  iss: oldDid,
-        //}
-        //const encodedPayload = btoa(JSON.stringify(claims))
+
         for (let contact of contacts) {
           const message = {
             type: "https://didcomm.org/empty/1.0/empty",
             body: {},
             from_prior: jwt,
           }
+          logger.log("Sending new did to contact:", contact?.label || contact.did)
           console.log("Sending new did to contact:", contact, message)
           this.sendMessage(contact, message as IMessage)
         }

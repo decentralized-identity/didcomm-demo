@@ -205,7 +205,6 @@ export class DIDPeer4Resolver implements DIDResolver {
       keyAgreement: raw_doc.keyAgreement.map((kid: string) => `${raw_doc.id}${kid}`),
       service: raw_doc.service,
     }
-    console.log(doc)
     return doc
   }
 }
