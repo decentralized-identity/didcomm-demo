@@ -62,6 +62,23 @@ export class Agent {
       case "didGenerated":
         this.onDidGenerated(e.data.payload)
         break
+      case "didRotated":
+        let contacts = ContactService.getContacts()
+        const {oldDid, newDid, jwt} = e.data.payload
+        if(this.profile.did == oldDid)
+          this.profile.did = newDid
+
+        for (let contact of contacts) {
+          const message = {
+            type: "https://didcomm.org/empty/1.0/empty",
+            body: {},
+            from_prior: jwt,
+          }
+          logger.log("Sending new did to contact:", contact?.label || contact.did)
+          console.log("Sending new did to contact:", contact, message)
+          this.sendMessage(contact, message as IMessage)
+        }
+        break
       case "messageReceived":
         this.onMessageReceived(e.data.payload)
         break
@@ -143,6 +160,10 @@ export class Agent {
   }
 
   private onMessageReceived(message: IMessage) {
+    if (message?.prior) {
+      const oldContact = ContactService.getContact(message.prior.iss)
+      oldContact && ContactService.rotateContact(oldContact, message.prior.sub)
+    }
     const from =
       message.from == this.profile.did
         ? (this.profile as Contact)
@@ -159,7 +180,7 @@ export class Agent {
       }
       ContactService.addMessage(message.from, {
         sender: fromName,
-        receiver: to.label || to.did,
+        receiver: to?.label || to.did,
         timestamp: new Date(),
         content: message.body.content,
         type: message.type,
@@ -200,6 +221,13 @@ export class Agent {
     })
     internalMessage.raw.from = this.profile.did
     ContactService.addMessage(contact.did, internalMessage)
+  }
+
+  public async rotateDid() {
+    this.worker.postMessage({
+      type: "rotateDid",
+      payload: {},
+    })
   }
 
   public async refreshMessages() {

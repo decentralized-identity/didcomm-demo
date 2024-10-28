@@ -423,6 +423,13 @@ class MessageHistoryComponent
           inspectable: false,
           hideBody: true,
         })
+      case "https://didcomm.org/empty/1.0/empty":
+        return m(MessageCard, {
+          header: "Empty",
+          message,
+          inspectable: false,
+          hideBody: true,
+        })
       default:
         return m(
           MessageCard,

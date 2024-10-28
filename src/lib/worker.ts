@@ -8,6 +8,9 @@ const ctx: Worker = self as any
 class DIDCommWorker {
   private didcomm: DIDComm
   private didForMediator: string
+  private routingDid: string
+  private mediatorDid: string
+  private oldDid: string
   private did: string
   private ws: WebSocket
 
@@ -25,6 +28,7 @@ class DIDCommWorker {
   async establishMediation({ mediatorDid }: { mediatorDid: string }) {
     logger.log("Establishing mediation with mediator: ", mediatorDid)
     this.didForMediator = await this.didcomm.generateDidForMediator()
+    logger.log("Generated did: ", this.didForMediator);
     {
       const [msg, meta] = await this.didcomm.sendMessageAndExpectReply(
         mediatorDid,
@@ -43,6 +47,8 @@ class DIDCommWorker {
       }
       const routingDid = reply.body.routing_did[0]
       this.did = await this.didcomm.generateDid(routingDid)
+      this.routingDid = routingDid
+      this.mediatorDid = mediatorDid
       this.postMessage({ type: "didGenerated", payload: this.did })
     }
 
@@ -82,6 +88,52 @@ class DIDCommWorker {
     if (reply.body.updated[0]?.result !== "success") {
       throw new Error("Unexpected status in recipient update response")
     }
+  }
+
+  async rotateDid() {
+    const oldDid = this.did
+    const did = await this.didcomm.generateDid(this.routingDid)
+    const rotatedDid = await this.didcomm.rotateDID(oldDid, did)
+
+    const [msg, meta] = await this.didcomm.sendMessageAndExpectReply(
+      this.mediatorDid,
+      this.didForMediator,
+      {
+        type: "https://didcomm.org/coordinate-mediation/3.0/recipient-update",
+        body: {
+          updates: [
+            {
+              recipient_did: did,
+              action: "add",
+            },
+          ],
+        },
+      }
+    )
+
+    const reply = msg.as_value()
+    if (
+      reply.type !==
+      "https://didcomm.org/coordinate-mediation/3.0/recipient-update-response"
+    ) {
+      console.error("Unexpected reply: ", reply)
+      throw new Error("Unexpected reply")
+    }
+
+    if (reply.body.updated[0]?.recipient_did !== did) {
+      throw new Error("Unexpected did in recipient update response")
+    }
+
+    if (reply.body.updated[0]?.action !== "add") {
+      throw new Error("Unexpected action in recipient update response")
+    }
+
+    if (reply.body.updated[0]?.result !== "success") {
+      throw new Error("Unexpected status in recipient update response")
+    }
+    this.did = did
+    this.oldDid = oldDid
+    this.postMessage({ type: "didRotated", payload: {newDid: this.did, oldDid: oldDid, jwt: rotatedDid[0]}})
   }
 
   async pickupStatus({ mediatorDid }: { mediatorDid: string }) {
@@ -146,7 +198,7 @@ class DIDCommWorker {
   }
 
   async handleMessage(message: IMessage) {
-    console.log("handleMessage: ", message)
+    console.log("handleMessage: ", "(before 'Received:' stringify)", message)
     switch (message.type) {
       case "https://didcomm.org/messagepickup/3.0/status":
         if (message.body.message_count > 0) {
@@ -203,6 +255,10 @@ class DIDCommWorker {
       default:
         console.log("Unhandled message: ", message)
         break
+    }
+    if("from_prior" in message) {
+      const prior = await this.didcomm.getPrior(message.from_prior)
+      message.prior = prior
     }
     this.postMessage({ type: "messageReceived", payload: message })
   }

@@ -29,12 +29,14 @@
   },
   "dependencies": {
     "@noble/curves": "^1.2.0",
+    "bs58": "^5.0.0",
     "didcomm": "^0.4.1",
     "lit-code": "^0.1.12",
     "mithril": "^2.2.2",
     "multibase": "^4.0.6",
     "multicodec": "^3.2.1",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "varint": "^6.0.0"
   },
   "devDependencies": {
     "@fortawesome/fontawesome-free": "^6.4.2",
@@ -44,6 +46,7 @@
     "@types/mithril": "^2.0.14",
     "@types/prismjs": "^1.26.0",
     "@types/uuid": "^9.0.3",
+    "@types/varint": "^6.0.3",
     "bulma": "^0.9.4",
     "css-loader": "^6.8.1",
     "html-loader": "^4.2.0",

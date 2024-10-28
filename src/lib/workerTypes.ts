@@ -1,6 +1,7 @@
 export type WorkerCommandType =
   | "init"
   | "establishMediation"
+  | "rotateDid"
   | "connect"
   | "disconnect"
   | "sendMessage"
@@ -15,6 +16,7 @@ export type WorkerMessageType =
   | "init"
   | "log"
   | "didGenerated"
+  | "didRotated"
   | "messageReceived"
   | "connected"
   | "disconnected"
