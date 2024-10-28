@@ -160,7 +160,6 @@ export class Agent {
   }
 
   private onMessageReceived(message: IMessage) {
-    console.log("Recieved message: ", message)
     if (message?.prior) {
       const oldContact = ContactService.getContact(message.prior.iss)
       oldContact && ContactService.rotateContact(oldContact, message.prior.sub)

@@ -484,7 +484,7 @@ export class DIDComm {
 
   async getPrior(prior: string): Promise<IFromPrior> {
     const from_prior = await FromPrior.unpack(prior, this.resolver)
-    console.log(from_prior)
+    console.log("received from_prior:", from_prior)
     return from_prior[0].as_value()
   }
 

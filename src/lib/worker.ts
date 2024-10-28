@@ -198,7 +198,7 @@ class DIDCommWorker {
   }
 
   async handleMessage(message: IMessage) {
-    console.log("handleMessage: ", message)
+    console.log("handleMessage: ", "(before 'Received:' stringify)", message)
     switch (message.type) {
       case "https://didcomm.org/messagepickup/3.0/status":
         if (message.body.message_count > 0) {
