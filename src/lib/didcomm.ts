@@ -268,12 +268,81 @@ export class DIDWebResolver implements DIDResolver {
   }
 }
 
+// Any other method: delegate to a Universal Resolver (https://dev.uniresolver.io
+// is run by DIF and resolves about 90 methods). The document is reduced to what
+// the didcomm library accepts: absolute ids, the verification method types it
+// knows (Multikey is mapped as in DIDPeer4Resolver), DIDCommMessaging services.
+const UNIVERSAL_RESOLVER = "https://dev.uniresolver.io/1.0/identifiers/"
+
+const KNOWN_METHOD_TYPES = [
+  "JsonWebKey2020",
+  "X25519KeyAgreementKey2019",
+  "X25519KeyAgreementKey2020",
+  "Ed25519VerificationKey2018",
+  "Ed25519VerificationKey2020",
+  "EcdsaSecp256k1VerificationKey2019",
+]
+
+export class DIDUniversalResolver implements DIDResolver {
+  // One request per DID: the public resolver rate-limits anonymous clients
+  // (dev.uniresolver.io: 10 requests per 30 minutes), and every pack resolves.
+  private readonly cache = new Map<DID, Promise<DIDDoc | null>>()
+
+  constructor(private readonly base: string = UNIVERSAL_RESOLVER) {}
+
+  resolve(did: DID): Promise<DIDDoc | null> {
+    let doc = this.cache.get(did)
+    if (!doc) {
+      doc = this.fetchDoc(did).catch((e) => { this.cache.delete(did); throw e })
+      this.cache.set(did, doc)
+    }
+    return doc
+  }
+
+  private async fetchDoc(did: DID): Promise<DIDDoc | null> {
+    const response = await fetch(this.base + did)
+    if (!response.ok) return null
+    const result = await response.json()
+    const doc = result.didDocument ?? result // DID Resolution Result, or a bare document
+    if (!doc?.id) return null
+    const absolute = (id: string) => (id.startsWith("#") ? did + id : id)
+    const references = (refs: any[]) =>
+      (refs ?? []).filter((ref: any) => typeof ref == "string").map(absolute)
+    const verificationMethod = (doc.verificationMethod ?? [])
+      .map((vm: Record<string, any>) => {
+        let type = vm.type
+        if (type == "Multikey") {
+          switch (multicodec.getNameFromData(multibase.decode(vm.publicKeyMultibase))) {
+            case "x25519-pub":
+              type = "X25519KeyAgreementKey2020"
+              break
+            case "ed25519-pub":
+              type = "Ed25519VerificationKey2020"
+              break
+          }
+        }
+        return { ...vm, id: absolute(vm.id), controller: vm.controller ?? did, type }
+      })
+      .filter((vm: Record<string, any>) => KNOWN_METHOD_TYPES.includes(vm.type))
+    return {
+      id: doc.id,
+      verificationMethod,
+      authentication: references(doc.authentication),
+      keyAgreement: references(doc.keyAgreement),
+      service: (doc.service ?? [])
+        .filter((s: any) => s.type == "DIDCommMessaging")
+        .map(DIDPeer.transformOldServiceStyleToNew),
+    }
+  }
+}
+
 type ResolverMap = {
   [key: string]: DIDResolver;
 }
 
 export class PrefixResolver implements DIDResolver {
   resolver_map: ResolverMap = {}
+  fallback: DIDResolver = new DIDUniversalResolver()
   constructor() {
     this.resolver_map = {
       "did:peer:2": new DIDPeerResolver() as DIDResolver,
@@ -283,9 +352,9 @@ export class PrefixResolver implements DIDResolver {
   }
 
   async resolve(did: DID): Promise<DIDDoc | null> {
-    var result = Object.keys(this.resolver_map).filter(resolver => did.startsWith(resolver));
-    const resolved_doc = await this.resolver_map[result[0] as keyof typeof this.resolver_map].resolve(did);
-    return resolved_doc;
+    const prefix = Object.keys(this.resolver_map).find(resolver => did.startsWith(resolver));
+    const resolver = prefix ? this.resolver_map[prefix] : this.fallback;
+    return await resolver.resolve(did);
   }
 }
 
